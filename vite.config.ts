@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
+  // O repositório é publicado em https://<usuario>.github.io/cacaPalavras/
+  base: '/cacaPalavras/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

@@ -98,3 +98,7 @@ src/
 ```
 
 Ver [`AGENTS.md`](AGENTS.md) para as diretrizes de contribuição.
+
+## Publicação no GitHub Pages
+
+O projeto está configurado para o repositório `cacaPalavras` em GitHub Pages (`base: '/cacaPalavras/'`). O workflow `.github/workflows/deploy.yml` compila e publica automaticamente ao enviar para `main` ou `master`. Em **Settings → Pages**, selecione **GitHub Actions** como fonte de publicação. Depois acompanhe a execução em **Actions**.

@@ -22,7 +22,7 @@ createRoot(container).render(
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/sw.js')
+      .register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL })
       .then(() => navigator.serviceWorker.ready)
       .then((registration) => {
         /*
@@ -41,7 +41,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 
         registration.active?.postMessage({
           type: 'PRECACHE',
-          urls: ['/', '/index.html', ...resources],
+          urls: [import.meta.env.BASE_URL, `${import.meta.env.BASE_URL}index.html`, ...resources],
         });
       })
       .catch(() => {
