@@ -1,0 +1,2050 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>cacaPalavras — Conceito A · Clareza de Fluxo</title>
+
+<!--
+================================================================================
+ CONCEITO A — "CLARIDADE DE FLUXO"  ·  decisões de UX
+================================================================================
+
+Mockup estático (HTML + CSS + JS inline, sem build, sem dependências, sem rede).
+Ele espelha as regras que já existem em `src/lib/*` (normalize, feedback,
+deriveKeyState, maxAttempts, streak, share) para que os 3 conceitos possam ser
+comparados sobre a MESMA base de regra.
+
+ As 10 decisões que definem este conceito
+ -----------------------------------------
+
+ A1) "REGRA DAS 2 FRASES", SEMPRE VISÍVEL.
+     O "como jogar" são 2 frases dentro da tela inicial — nunca atrás de modal.
+     Por quê: nos primeiros 10 segundos o jogador precisa saber O QUE FAZER. Um
+     modal custa 1 clique extra, 1 barreira visual e 1 chance de ser dispensado
+     sem ser lido. A regra cabe em 2 linhas, então fica na tela.
+     Base: `STRINGS.howToPlay` + `howToPlayShort` (src/data/strings.ts).
+
+ A2) UMA COR DE ACENTO POR TELA + UM ÚNICO CTA.
+     Violeta (#5B3DF5) é o acento do produto e só aparece em AÇÕES (botão
+     primário, chip de foco, link ativo). As 3 cores semânticas (verde / amarelo
+     / cinza) ficam reservadas para o feedback de letra.
+     Por quê: se o acento dividisse espaço com o verde do "acertou", o sinal mais
+     importante da tela (esta letra está certa?) perderia força.
+
+ A3) ESTADO VAZIO = "QUANTAS LETRAS", NÃO "GRADE VAZIA".
+     Antes da 1ª tentativa o topo mostra tema + "5 letras" + 5 underscores.
+     Por quê: uma grade 100% vazia não diz nada — o jogador não sabe se faltam 4
+     ou 6 letras. Mostrar o esqueleto resolve a dúvida sem revelar nada.
+
+ A4) O TECLADO VIRTUAL APARECE POR PROGRESSÃO.
+     Na primeira dobra existem apenas a grade e UM botão de 56px ("Escrever
+     tentativa"). O teclado (~170px) só entra depois do primeiro toque.
+     Por quê: em 320×640 o teclado empurra a grade para fora da tela e transforma
+     o primeiro contato em rolagem. O teclado é o segundo ato do jogo — deve
+     aparecer quando a pessoa decide escrever, não antes.
+
+ A5) "JÁ JOGUEI HOJE" NÃO É PUNIÇÃO.
+     Em vez de modal/tela de erro: um card com contagem regressiva ao vivo
+     ("Volte em 04:12:37") e uma saída sem atrito ("Treinar agora").
+     Por quê: o bloqueio é real (1 palavra/dia), mas a mensagem pode ser neutra.
+     O jogador não errou nada — só chegou tarde.
+
+ A6) ERROS DE VALIDAÇÃO GENTIL E SEM BECO SEM SAÍDA.
+     - Vazia  → "Digite uma palavra antes de enviar." (não consome tentativa)
+     - Length → "A palavra tem 5 letras. Faltam 2." (diz o que falta)
+     - Repetida → "Você já tentou essa palavra. Ela está lá em cima."
+       (+ a linha antiga pisca: "lá em cima" precisa apontar para algum lugar)
+     - Desconhecida → bloqueio *suave*: 2 toques ("Usar mesmo assim" / "Trocar")
+     Por quê: rejeitar de forma definitiva uma palavra que o dicionário do MVP
+     ainda não tem é a maior fonte de frustração/abandono do gênero. O bloqueio
+     mole educa sem castigar.
+
+ A7) PROGRESSO VISÍVEL SEM SPOILER.
+     Depois de cada tentativa a status line diz "2 letras no lugar certo, 1 em
+     outro lugar"; a barra mostra "Tentativa 3 de 7" e os pontos ficam verdes
+     quando há alguma letra no lugar.
+     Por quê: o jogador precisa de uma leitura de "estou indo bem?" que não
+     dependa de inferir a palavra. Contagem é informação; cor sozinha é adivinhação.
+
+ A8) ORDEM DE LEITURA DA TELA DE RESULTADO (fixa):
+     1) veredito (Acertou / Fim de jogo) → 2) a palavra → 3) nº de tentativas
+     (número grande) → 4) sequência (banner de destaque) → 5) compartilhamento
+     → 6) ações.
+     Por quê: essa é a ordem das perguntas que o jogador faz na cabeça: "ganhei?"
+     "qual era?" "fui rápido?" "vale voltar amanhã?".
+
+ A9) O TECLADO É CHROME, NÃO FEEDBACK.
+     As teclas mantêm o contorno e recebem só um fundo suave + o símbolo; a cor
+     saturada (verde/amarelo/cinza) fica reservada para a GRADE.
+     Por quê: se o teclado gritar em amarelo, o olho não sabe para onde ir. A
+     grade é o tabuleiro; o teclado é o instrumento.
+
+ A10) MICROCOPY VERBAL E CURTO, TOM NÃO-PUNITIVO.
+     Botões: "Jogar", "Escrever tentativa", "Ver resultado", "Copiar", "Voltar ao
+     início". Nenhum rótulo decorativo ("Vamos lá!", "Bora!"). Erros dizem o que
+     aconteceu e o próximo passo, nunca "Errado!".
+     Base: `STRINGS` de src/data/strings.ts (mesmas chaves do app real).
+
+ Responsividade
+ --------------
+ < 480px  → o "celular" ocupa 100% da largura, sem moldura.
+ >= 700px → moldura de celular de 420px centralizada (escolhi a opção "frame de
+            celular" para comparar os 3 conceitos como se fossem mobile).
+ O layout interno é o mesmo nos dois casos: não existe layout desktop paralelo.
+ Sem scroll horizontal em 320px (verificado em 320 / 375 / 768 / 1280).
+
+ Alvos de toque
+ --------------
+ ≥ 44×44px em TODOS os controles, com uma exceção documentada: as letras do
+ teclado QWERTY. Com 10 colunas é matematicamente impossível ter 44px de largura
+ em 320px de viewport (10 × 44 = 440px > largura útil). Medido no Chrome a
+ 320px: letra 25×46px, apagar/enviar 46×46px. O que fazemos:
+ - altura de 46-48px (a dimensão crítica do toque) e largura ~25px nas letras;
+ - Backspace e Enviar têm 46×46px e 100% comply;
+ - o mínimo do WCAG 2.2 SC 2.5.8 (24×24, nível AA) é cumprido por TODAS as
+   teclas, incluindo as letras;
+ - a mitigação de produção sugerida está anotada no código do teclado
+   (teclado nativo do sistema em telas < 380px).
+================================================================================
+-->
+
+<style>
+/* ============================================================================
+   1. TOKENS
+   Contraste conferido: --accent 6.1:1, --accent-ink 8.2:1, --ink 17:1,
+   --ink-2 8.0:1, --ink-3 4.8:1, --line-strong 3.1:1 (componente), --green 5.0:1,
+   --amber 9.3:1 (texto escuro), --gray 4.8:1 (texto escuro), --focus 7.7:1.
+   ========================================================================= */
+:root{
+  --bg:#F3F4F8;
+  --surface:#FFFFFF;
+  --surface-2:#F7F8FB;
+  --ink:#14161C;
+  --ink-2:#4A5060;
+  --ink-3:#6B7280;
+  --line:#E3E6EE;         /* decorativo (separadores) */
+  --line-strong:#8A93A3;  /* borda de componente interativo — 3.1:1 vs branco */
+
+  --accent:#5B3DF5;
+  --accent-ink:#4A2ECC;
+  --accent-soft:#EFEBFF;
+  --accent-soft-2:#E4DEFF;
+
+  --green:#2F7D52;  --green-ink:#FFFFFF;
+  --amber:#E8B23A;  --amber-ink:#241A00;
+  --gray:#8B93A1;   --gray-ink:#1F2937;
+
+  --focus:#0B3BE0;
+  --r-sm:10px; --r-md:14px; --r-lg:20px;
+  --shadow-2:0 10px 34px rgba(16,18,28,.16);
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+          "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html{ -webkit-text-size-adjust:100%; }
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--font); font-size:16px; line-height:1.45;
+  overflow-x:hidden;
+}
+h1,h2,h3,p,ul,ol,figure,pre{ margin:0; }
+ul{ list-style:none; padding:0; }
+button{ font:inherit; color:inherit; }
+[hidden]{ display:none !important; }
+
+/* Foco visível em TODO elemento interativo (WCAG 2.4.7). */
+:focus-visible{
+  outline:3px solid var(--focus);
+  outline-offset:2px;
+  border-radius:8px;
+}
+.sr-only{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+.skip-link{
+  position:absolute; left:8px; top:-100px; z-index:100;
+  background:var(--surface); color:var(--accent-ink);
+  padding:12px 16px; border-radius:var(--r-sm); font-weight:700;
+  border:2px solid var(--accent); text-decoration:none;
+  transition:top .15s ease;
+}
+.skip-link:focus{ top:8px; }
+
+/* ============================================================================
+   2. CHROME DO PROTÓTIPO (não faz parte do produto — só para navegar)
+   ========================================================================= */
+.proto{
+  background:#11131A; color:#F2F4F8;
+  padding:10px 12px;
+  display:flex; flex-direction:column; gap:10px; align-items:center;
+  position:sticky; top:0; z-index:60;
+}
+.proto :focus-visible{ outline-color:#FFD166; }
+.proto-row{
+  width:100%; max-width:960px;
+  display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center;
+  justify-content:space-between;
+}
+.proto-title{ font-weight:800; font-size:14px; }
+.proto-concept{ font-weight:500; color:#A9B0BE; }
+.proto-toggle{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:13px; color:#C9CEDA; min-height:44px; cursor:pointer;
+}
+.proto-toggle input{ width:24px; height:24px; accent-color:#7C5CFF; }
+.tabs{
+  width:100%; max-width:960px;
+  display:grid; grid-template-columns:repeat(2, 1fr); gap:4px;
+  padding:4px; background:#1C2029; border-radius:var(--r-md);
+}
+.tab{
+  min-width:0; min-height:44px; white-space:nowrap;
+  border:0; background:transparent; color:#C2C8D6;
+  font-size:13px; font-weight:700; border-radius:10px; cursor:pointer;
+  padding:10px 4px;
+}
+/* A partir de 360px os 4 rótulos cabem em uma linha só. */
+@media (min-width:360px){ .tabs{ grid-template-columns:repeat(4, 1fr); } }
+.tab:hover{ background:#252A35; color:#fff; }
+.tab[aria-selected="true"]{ background:#fff; color:#11131A; }
+/* Em telas largas o chrome do protótipo vira uma linha só. */
+@media (min-width:900px){
+  .proto{ flex-direction:row; align-items:center; gap:16px; }
+  .proto-row{ flex:1 1 auto; width:auto; }
+  .tabs{ width:auto; flex:0 1 480px; }
+}
+
+/* ============================================================================
+   3. PALCO / MOLDURA DE CELULAR
+   ========================================================================= */
+.stage{
+  min-height:calc(100vh - 92px);
+  display:flex; align-items:flex-start; justify-content:center;
+  padding:16px 0 48px;
+}
+.phone{ width:100%; max-width:480px; }
+.phone-screen{
+  background:var(--surface); min-height:520px;
+  display:flex; flex-direction:column;
+}
+@media (min-width:700px){
+  .stage{ align-items:center; padding:28px 16px 64px; }
+  .phone{
+    max-width:420px; border-radius:28px; border:1px solid #D7DBE5;
+    box-shadow:var(--shadow-2); overflow:hidden;
+  }
+  .phone-screen{ min-height:640px; }
+}
+
+/* ============================================================================
+   4. TOPO DO APP (compartilhado entre as 4 telas)
+   ========================================================================= */
+.topbar{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 12px; border-bottom:1px solid var(--line);
+  background:var(--surface); flex:0 0 auto;
+}
+.topbar-left{ display:flex; align-items:center; gap:8px; min-width:0; }
+.topbar-title{
+  flex:1 1 auto; min-width:0; text-align:center;
+  font-weight:800; font-size:15px; letter-spacing:-.01em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.topbar-right{ display:flex; align-items:center; gap:6px; }
+.brand{ font-weight:900; font-size:17px; letter-spacing:-.02em; white-space:nowrap; }
+.brand b{ color:var(--accent); font-weight:900; }
+
+.icon-btn{
+  width:44px; height:44px; flex:0 0 auto;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--surface-2); border:1px solid var(--line-strong);
+  border-radius:12px; cursor:pointer; font-size:18px; font-weight:800;
+  color:var(--ink-2);
+}
+.icon-btn:hover{ background:#EDEFF6; color:var(--ink); }
+
+/* Seletor de idioma — é feature do produto, então fica no app, não no chrome
+   do protótipo. Segmentos de 44×44 para cumprir alvo de toque. */
+.lang{
+  display:inline-flex; border:1px solid var(--line-strong);
+  border-radius:12px; overflow:hidden; flex:0 0 auto;
+}
+.lang button{
+  min-width:44px; height:44px; border:0; background:var(--surface);
+  color:var(--ink-3); font-size:13px; font-weight:800; cursor:pointer;
+}
+.lang button + button{ border-left:1px solid var(--line-strong); }
+.lang button[aria-pressed="true"]{ background:var(--accent); color:#fff; }
+
+/* ============================================================================
+   5. PAINÉIS E CORPO
+   ========================================================================= */
+.panel{ flex:1 1 auto; display:flex; flex-direction:column; }
+.panel:focus{ outline:none; }
+.body{
+  flex:1 1 auto; display:flex; flex-direction:column;
+  gap:14px; padding:16px 14px 22px;
+}
+@media (min-width:380px){ .body{ padding:20px 18px 26px; } }
+
+/* ============================================================================
+   6. BOTÕES
+   ========================================================================= */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  min-height:48px; padding:12px 18px;
+  border-radius:var(--r-md); border:2px solid transparent;
+  font-size:16px; font-weight:750; cursor:pointer; text-align:center;
+  transition:transform .12s ease, background-color .15s ease, border-color .15s ease;
+}
+.btn:active{ transform:translateY(1px); }
+.btn-primary{ background:var(--accent); color:#fff; }
+.btn-primary:hover{ background:#4A2ECC; }
+.btn-secondary{ background:var(--surface); color:var(--accent-ink); border-color:var(--accent); }
+.btn-secondary:hover{ background:var(--accent-soft); }
+.btn-ghost{ background:var(--surface); color:var(--ink); border-color:var(--line-strong); }
+.btn-ghost:hover{ background:var(--surface-2); }
+.btn-quiet{
+  background:transparent; color:var(--ink-2); border-color:transparent;
+  min-height:44px; font-weight:700; text-decoration:underline;
+  text-underline-offset:3px; padding:10px 12px;
+}
+.btn-lg{ min-height:56px; font-size:18px; width:100%; }
+.btn-sm{ min-height:44px; font-size:14px; padding:8px 14px; }
+
+/* ============================================================================
+   7. TELA INICIAL
+   ========================================================================= */
+.hero{
+  background:var(--accent-soft);
+  border:1px solid var(--accent-soft-2);
+  border-radius:var(--r-lg);
+  padding:18px 16px; text-align:center;
+}
+.eyebrow{
+  font-size:11px; font-weight:800; letter-spacing:.14em;
+  color:var(--accent-ink); text-transform:uppercase;
+}
+.hero-title{
+  font-size:30px; font-weight:900; letter-spacing:-.03em;
+  margin-top:6px; line-height:1.1;
+}
+.hero-len{ font-size:14px; font-weight:700; color:var(--ink-2); margin-top:2px; }
+
+/* Estado vazio amigável (A3): o esqueleto da palavra. */
+.slots{ display:flex; gap:6px; justify-content:center; margin-top:14px; }
+.slot{
+  width:34px; height:42px; border-radius:9px;
+  border:2px solid var(--accent-soft-2); background:rgba(255,255,255,.72);
+  display:grid; place-items:center;
+}
+.slot-line{ width:20px; height:3px; border-radius:2px; background:var(--accent); opacity:.55; }
+
+.field{ display:flex; flex-direction:column; gap:8px; }
+.field-label{ font-size:13px; font-weight:800; color:var(--ink-2); }
+.chips{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+.chip{
+  min-height:48px; padding:6px 4px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  background:var(--surface); border:2px solid var(--line-strong);
+  border-radius:12px; cursor:pointer; font-size:12px; font-weight:750;
+  color:var(--ink-2); line-height:1.1; text-align:center;
+}
+.chip .chip-icon{ font-size:16px; }
+.chip[aria-checked="true"]{
+  border-color:var(--accent); background:var(--accent-soft); color:var(--accent-ink);
+}
+.hint{ font-size:12.5px; color:var(--ink-3); line-height:1.4; }
+
+.rules{
+  font-size:14.5px; line-height:1.55; color:var(--ink-2);
+  background:var(--surface-2); border:1px solid var(--line);
+  border-left:4px solid var(--accent);
+  border-radius:var(--r-sm); padding:12px 14px;
+}
+.rules strong{ color:var(--ink); }
+
+/* Estado "já jogou hoje" (A5) */
+.done-card{
+  border:1px solid var(--line-strong); border-radius:var(--r-lg);
+  padding:18px 16px; text-align:center; background:var(--surface);
+}
+.done-badge{
+  width:48px; height:48px; margin:0 auto 10px; border-radius:50%;
+  background:var(--green); color:var(--green-ink);
+  display:grid; place-items:center; font-size:24px; font-weight:900;
+}
+.done-card h2{ font-size:20px; font-weight:900; letter-spacing:-.02em; }
+.done-text{ font-size:14.5px; color:var(--ink-2); margin-top:6px; }
+.countdown{
+  font-variant-numeric:tabular-nums; font-weight:900; color:var(--accent-ink);
+  background:var(--accent-soft); border-radius:6px; padding:2px 8px;
+  display:inline-block; margin-top:8px; font-size:18px;
+}
+
+.mini-stats{ display:flex; gap:8px; border-top:1px solid var(--line); padding-top:14px; }
+.mini-stat{
+  flex:1 1 0; text-align:center; background:var(--surface-2);
+  border:1px solid var(--line); border-radius:12px; padding:10px 4px;
+}
+.mini-num{ display:block; font-size:19px; font-weight:900; letter-spacing:-.02em; }
+.mini-lab{ display:block; font-size:11.5px; color:var(--ink-3); margin-top:2px; }
+
+/* ============================================================================
+   8. TELA DE PARTIDA
+   ========================================================================= */
+.progress{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.progress-text{ font-size:13.5px; font-weight:800; color:var(--ink-2); }
+.progress-dots{ display:flex; gap:4px; }
+.pdot{ width:9px; height:9px; border-radius:50%; background:var(--line); border:1px solid var(--line-strong); }
+.pdot.on{ background:var(--accent); border-color:var(--accent); }
+.pdot.hit{ background:var(--green); border-color:var(--green); }
+
+.chip-note{
+  display:inline-flex; align-items:center; gap:6px; align-self:flex-start;
+  background:var(--accent-soft); color:var(--accent-ink);
+  border:1px solid var(--accent-soft-2); border-radius:999px;
+  padding:6px 12px; font-size:12.5px; font-weight:750;
+}
+
+.help{
+  border:1px solid var(--line-strong); border-radius:var(--r-md);
+  padding:12px 14px; background:var(--surface-2);
+  font-size:13.5px; line-height:1.5; color:var(--ink-2);
+}
+.help h3{ font-size:14px; font-weight:850; color:var(--ink); margin-bottom:4px; }
+
+/* Grade ------------------------------------------------------------------ */
+.board{
+  --gap:6px; --tile-max:60px;
+  display:flex; flex-direction:column; align-items:center; gap:var(--gap);
+  width:100%;
+}
+.row{
+  --n:5;
+  display:grid; grid-template-columns:repeat(var(--n), minmax(0,1fr)); gap:var(--gap);
+  width:100%;
+  max-width:calc(var(--n) * var(--tile-max) + (var(--n) - 1) * var(--gap));
+}
+.tile{
+  position:relative; aspect-ratio:1 / 1;
+  border-radius:9px; border:2px solid var(--line-strong);
+  background:var(--surface-2);
+  display:grid; place-items:center;
+  font-weight:900; font-size:clamp(15px, 7.6vw, 28px); line-height:1;
+  text-transform:uppercase; letter-spacing:.02em;
+  color:var(--ink);
+}
+.tile.empty{ background:var(--surface); }
+.tile.filled{ background:var(--surface); border-color:var(--ink-3); }
+.tile.active{ border-color:var(--accent); background:var(--surface); box-shadow:0 0 0 3px rgba(91,61,245,.20); }
+.tile.correct{ background:var(--green); border-color:var(--green); color:var(--green-ink); }
+.tile.present{ background:var(--amber); border-color:var(--amber); color:var(--amber-ink); }
+.tile.absent{ background:var(--gray); border-color:var(--gray); color:var(--gray-ink); }
+
+/* Símbolo redundante: a cor nunca é o único canal (WCAG 1.4.1). */
+.tile .badge{ position:absolute; top:1px; right:3px; font-size:11px; font-weight:900; line-height:1; }
+.caret{ width:2px; height:26%; background:var(--accent); border-radius:2px; animation:blink 1.1s steps(2,start) infinite; }
+@keyframes blink{ 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* Flip da linha ao enviar (desligado em prefers-reduced-motion). */
+.tile.flip{ animation:flip .42s cubic-bezier(.2,.85,.3,1.25) both; animation-delay:calc(var(--i) * 90ms); }
+@keyframes flip{
+  0%{ transform:rotateX(-88deg) scale(.88); opacity:.15; }
+  60%{ transform:rotateX(12deg) scale(1.04); opacity:1; }
+  100%{ transform:rotateX(0) scale(1); opacity:1; }
+}
+.row.shake{ animation:shake .38s ease; }
+@keyframes shake{
+  0%,100%{ transform:translateX(0); }
+  20%{ transform:translateX(-7px); } 40%{ transform:translateX(7px); }
+  60%{ transform:translateX(-4px); } 80%{ transform:translateX(4px); }
+}
+.row.spotlight .tile{ animation:spotlight .9s ease; }
+@keyframes spotlight{ 0%,100%{ transform:scale(1);} 35%{ transform:scale(1.08);} }
+
+/* Legenda: sempre visível (A1). */
+.legend{ display:flex; flex-wrap:wrap; gap:6px 14px; justify-content:center; font-size:12px; color:var(--ink-3); }
+.legend span{ display:inline-flex; align-items:center; gap:5px; }
+.legend b{ font-weight:900; }
+
+/* Status / validação ---------------------------------------------------- */
+.feedback{ min-height:44px; display:flex; flex-direction:column; justify-content:center; gap:6px; text-align:center; }
+.msg{ font-size:14px; font-weight:700; line-height:1.4; }
+.msg.ok{ color:var(--green); }
+.msg.warn{ color:var(--ink-2); }
+.msg.error{ color:#B3261E; } /* 5.6:1 vs branco */
+.msg-actions{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+
+/* Teclado ---------------------------------------------------------------- */
+.kb-zone{ margin-top:auto; padding-top:4px; }
+.keyboard{
+  display:flex; flex-direction:column; gap:5px;
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+  margin:0 -4px; background:var(--surface-2);
+  border-top:1px solid var(--line);
+  animation:kbIn .22s ease-out both;
+}
+@keyframes kbIn{ from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:none;} }
+.kb-row{ display:flex; gap:4px; justify-content:center; }
+.key{
+  flex:1 1 0; min-width:0; height:48px;
+  border-radius:8px; border:1px solid var(--line-strong);
+  background:var(--surface); color:var(--ink);
+  font-size:17px; font-weight:800; text-transform:uppercase;
+  cursor:pointer; box-shadow:0 1px 0 rgba(16,18,28,.10);
+}
+/*
+ * Apagar e Enviar têm largura fixa de 46px (alvo de toque ≥ 44×44 cumprido).
+ * As letras ficam com o espaço restante (~25px em 320px) — a largura de 10
+ * colunas é a restrição física do QWERTY em tela estreita; a altura de 48px
+ * garante a dimensão crítica do toque. Mitigação de produção sugerida:
+ * oferecer o teclado nativo do sistema em telas < 380px, ou aceitar 2 linhas
+ * de teclas maiores com rolagem vertical dentro do teclado.
+ */
+.key.wide{ flex:0 1 46px; min-width:44px; font-size:14px; }
+.key:active{ background:#E9EBF3; transform:translateY(1px); }
+/* O teclado é chrome: fundo suave + símbolo, nunca cor saturada (A9). */
+.key[data-state="correct"]{ background:#DFF0E6; border-color:#7FB99A; }
+.key[data-state="present"]{ background:#FBEFCE; border-color:#D8B45E; }
+.key[data-state="absent"]{ background:#EBEDF2; border-color:#C3C8D2; color:var(--ink-3); }
+.key .ksym{ display:block; font-size:9px; line-height:1; margin-top:-3px; font-weight:900; }
+.key[data-state="correct"] .ksym{ color:#1C5C3A; }
+.key[data-state="present"] .ksym{ color:#7A5600; }
+.key[data-state="absent"] .ksym{ color:var(--ink-3); }
+
+/* ============================================================================
+   9. TELA DE RESULTADO
+   ========================================================================= */
+.result-hero{
+  position:relative; overflow:hidden;
+  border-radius:var(--r-lg); padding:22px 16px 18px; text-align:center;
+  background:var(--surface-2); border:1px solid var(--line);
+}
+.result-hero.win{ background:var(--accent-soft); border-color:var(--accent-soft-2); }
+.result-badge{
+  width:64px; height:64px; margin:0 auto 10px; border-radius:50%;
+  display:grid; place-items:center; font-size:32px; font-weight:900;
+  background:var(--green); color:var(--green-ink);
+  animation:pop .5s cubic-bezier(.2,.9,.3,1.4) both;
+}
+.result-hero.lose .result-badge{ background:var(--gray); color:var(--gray-ink); }
+@keyframes pop{ 0%{ transform:scale(.4); opacity:0;} 70%{ transform:scale(1.12);} 100%{ transform:scale(1); opacity:1;} }
+.result-title{ font-size:26px; font-weight:900; letter-spacing:-.03em; line-height:1.1; }
+.result-word{
+  font-size:30px; font-weight:900; letter-spacing:.06em; text-transform:uppercase;
+  margin-top:8px; color:var(--accent-ink); word-break:break-word;
+}
+.result-meta{ font-size:13.5px; color:var(--ink-2); margin-top:4px; }
+
+.result-stats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.rstat{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md); padding:14px 10px; text-align:center; }
+.rstat .rnum{ display:block; font-size:30px; font-weight:900; letter-spacing:-.03em; line-height:1.05; }
+.rstat .rlab{ display:block; font-size:12.5px; color:var(--ink-3); margin-top:3px; }
+
+.streak-banner{
+  display:flex; align-items:center; gap:12px;
+  background:var(--accent); color:#fff;
+  border-radius:var(--r-md); padding:14px 16px;
+}
+.streak-banner .sicon{ font-size:26px; }
+.streak-banner .snum{ font-size:26px; font-weight:900; line-height:1; }
+.streak-banner .slab{ font-size:12.5px; opacity:.92; }
+
+.share{ border:1px solid var(--line); border-radius:var(--r-md); padding:14px; background:var(--surface); }
+.share h2{ font-size:15px; font-weight:850; }
+.share .share-hint{ font-size:12px; color:var(--ink-3); margin-top:2px; }
+/* Grid de emoji/quadrados: quadrados CSS (robusto sem fonte de emoji no SO). */
+.share-grid{
+  display:grid; grid-template-columns:repeat(var(--c), 18px);
+  gap:3px; justify-content:center; margin:12px auto 10px; width:max-content;
+}
+.share-cell{ width:18px; height:18px; border-radius:3px; background:#3A3A3C; }
+.share-cell.correct{ background:var(--green); }
+.share-cell.present{ background:var(--amber); }
+.share-cell.absent{ background:#3A3A3C; }
+.share-text{
+  font-size:12px; color:var(--ink-2); background:var(--surface-2);
+  border:1px solid var(--line); border-radius:var(--r-sm);
+  padding:10px 12px; white-space:pre-wrap; word-break:break-word;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  line-height:1.45;
+}
+.share-actions{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+
+/* Confete (CSS puro) */
+.confetti{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.confetti i{
+  position:absolute; top:-14px; width:7px; height:11px; border-radius:2px;
+  background:var(--c,#5B3DF5); opacity:0;
+  animation:fall 2.6s ease-in forwards;
+}
+@keyframes fall{
+  0%{ transform:translateY(-12px) rotate(0deg); opacity:1; }
+  100%{ transform:translateY(360px) rotate(540deg); opacity:0; }
+}
+
+/* ============================================================================
+   10. TELA DE ESTATÍSTICAS
+   ========================================================================= */
+.stat-hero{
+  background:var(--accent-soft); border:1px solid var(--accent-soft-2);
+  border-radius:var(--r-lg); padding:20px 16px; text-align:center;
+}
+.stat-hero .sh-num{ font-size:44px; font-weight:900; letter-spacing:-.04em; line-height:1; }
+.stat-hero .sh-lab{ font-size:13px; font-weight:750; color:var(--accent-ink); margin-top:4px; }
+.stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.stat-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md); padding:14px 12px; }
+.stat-card .sc-num{ display:block; font-size:24px; font-weight:900; letter-spacing:-.02em; }
+.stat-card .sc-lab{ display:block; font-size:12.5px; color:var(--ink-3); margin-top:2px; }
+.dist{ display:flex; flex-direction:column; gap:5px; align-items:flex-end; }
+.dist-row{ display:flex; align-items:center; gap:8px; width:100%; font-size:12px; color:var(--ink-3); }
+.dist-bar{ height:16px; border-radius:4px; background:var(--accent); min-width:2px; }
+.dist-n{ width:18px; text-align:right; font-variant-numeric:tabular-nums; }
+.empty-note{
+  background:var(--surface-2); border:1px dashed var(--line-strong);
+  border-radius:var(--r-md); padding:16px 14px; text-align:center;
+  font-size:14px; color:var(--ink-2);
+}
+.last-word{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-md); padding:14px;
+}
+.last-word .lw-word{ font-size:20px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }
+
+/* ============================================================================
+   11. RESPONSIVO — nenhum overflow horizontal até 320px
+   ========================================================================= */
+@media (max-width:359px){
+  .body{ padding:12px 10px 18px; gap:12px; }
+  .topbar{ padding:8px 8px; gap:6px; }
+  .brand{ font-size:15px; }
+  .hero-title{ font-size:25px; }
+  .slot{ width:30px; height:38px; }
+  .chip{ font-size:11px; }
+  .result-title{ font-size:22px; }
+  .result-word{ font-size:25px; }
+  .key{ height:46px; font-size:15px; }
+}
+@media (min-width:900px){ .stage{ padding-top:40px; } }
+
+/* ============================================================================
+   12. MOVIMENTO REDUZIDO
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
+  .caret{ animation:none; }
+  .confetti{ display:none; }
+}
+</style>
+</head>
+
+<body>
+<a class="skip-link" href="#app" data-i18n="a11y.skip">Pular para o jogo</a>
+
+<!-- ===================== CHROME DO PROTÓTIPO (não é produto) ===================== -->
+<header class="proto">
+  <div class="proto-row">
+    <span class="proto-title">
+      cacaPalavras <span class="proto-concept">· Conceito A · Clareza de Fluxo</span>
+    </span>
+    <label class="proto-toggle">
+      <input type="checkbox" id="simPlayed">
+      <span data-i18n="proto.simulate">Simular “já jogou hoje”</span>
+    </label>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Telas do protótipo">
+    <button class="tab" role="tab" id="tab-home"   aria-controls="panel-home"   aria-selected="true"  data-screen="home">Início</button>
+    <button class="tab" role="tab" id="tab-game"   aria-controls="panel-game"   aria-selected="false" tabindex="-1" data-screen="game">Partida</button>
+    <button class="tab" role="tab" id="tab-result" aria-controls="panel-result" aria-selected="false" tabindex="-1" data-screen="result">Resultado</button>
+    <button class="tab" role="tab" id="tab-stats"  aria-controls="panel-stats"  aria-selected="false" tabindex="-1" data-screen="stats">Estatísticas</button>
+  </div>
+</header>
+
+<!-- ============================== APLICATIVO ============================== -->
+<main id="app" class="stage">
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="topbar" id="topbar"></div>
+      <div class="panels">
+        <section class="panel" id="panel-home"   role="tabpanel" aria-labelledby="tab-home"   tabindex="-1"></section>
+        <section class="panel" id="panel-game"   role="tabpanel" aria-labelledby="tab-game"   tabindex="-1" hidden></section>
+        <section class="panel" id="panel-result" role="tabpanel" aria-labelledby="tab-result" tabindex="-1" hidden></section>
+        <section class="panel" id="panel-stats"  role="tabpanel" aria-labelledby="tab-stats"  tabindex="-1" hidden></section>
+      </div>
+
+      <!--
+        Regiões aria-live PERSISTENTES.
+        Ficam fora dos painéis de propósito: um live region precisa existir
+        ANTES do texto mudar para ser anunciado. Como cada painel é re-renderizado
+        a cada tecla digitada, um live region dentro dele seria recriado a cada
+        toque e o leitor de tela nunca anunciaria nada. Aqui as regiões são
+        fixas no DOM e apenas o texto muda; a versão VISÍVEL da mensagem fica
+        dentro do painel (para quem enxerga) e é espelhada aqui (para quem ouve).
+      -->
+      <div class="sr-only" id="liveResult" role="status" aria-live="polite" aria-atomic="true"></div>
+      <div class="sr-only" id="liveError"  role="alert"  aria-live="assertive" aria-atomic="true"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+"use strict";
+/* ============================================================================
+   PROTÓTIPO — Conceito A "Clareza de Fluxo"
+   ----------------------------------------------------------------------------
+   Reimplementação mínima e fiel das regras que já existem em `src/lib/`
+   (normalize, feedback, deriveKeyState, maxAttempts, streak, share), para que
+   o mockup seja jogável de verdade. Não substitui o app React.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. DADOS
+   Espelham `src/data/themes.ts` e `src/data/words/*`.
+   Os dicionários de tentativas (`GUESSES`) estão em estado de stub no app real
+   (arrays vazios) — aqui usamos listas comuns para que a validação seja
+   demonstrável. O COMPORTAMENTO de "palavra desconhecida" é o mesmo do app.
+   ------------------------------------------------------------------------- */
+const THEMES = {
+  animals: { length:5, icon:'🐾', label:{ pt:'Animais', en:'Animals' } },
+  food:    { length:4, icon:'🍎', label:{ pt:'Comida',  en:'Food' } },
+  science: { length:6, icon:'🔬', label:{ pt:'Ciência', en:'Science' } },
+  sports:  { length:5, icon:'⚽', label:{ pt:'Esportes',en:'Sports' } },
+};
+const THEME_IDS = ['animals','food','science','sports'];
+
+/*
+ * Palavras-resposta por tema e idioma.
+ *
+ * REGRA CRÍTICA: o tema define o COMPRIMENTO (src/data/themes.ts), então cada
+ * palavra desta lista precisa ter EXATAMENTE o comprimento do seu tema —
+ * animais=5, comida=4, ciência=6, esportes=5. Uma palavra fora do comprimento
+ * quebraria a partida (a grade mostraria N casas e a resposta teria outra
+ * quantidade de letras, tornando a vitória impossível).
+ *
+ * O guard `assertThemeLengths()` no boot audita isso e avisa no console.
+ */
+const WORDS = {
+  pt:{
+    animals:['tigre','panda','cervo','veado','hiena','pomba','pulga','porco','grilo','tenca','trigo','dingo','fossa','fenda','bicho','zebra'],
+    food:['bolo','doce','café','maçã','sopa','nata','purê','suco'],
+    science:['célula','átomos','árvore','neutro','reator','órbita','teoria','genoma'],
+    sports:['tênis','golfe','skate','surfe','rugby','vôlei','dardo','canoa'],
+  },
+  en:{
+    animals:['tiger','panda','horse','zebra','eagle','koala','snake','mouse'],
+    food:['cake','soup','taco','rice','kiwi','pear','lime','corn'],
+    science:['planet','energy','magnet','rocket','theory','quartz','copper','liquid'],
+    sports:['rugby','skier','darts','chess','rodeo','skate','padel'],
+  },
+};
+
+/*
+ * Dicionário de tentativas aceitas (forma normalizada, sem acento/cedilha),
+ * agrupado por COMPRIMENTO — o mesmo agrupamento de `src/data/words/*`.
+ * Toda entrada precisa ter exatamente o comprimento da sua chave.
+ */
+const GUESSES = {
+  pt:{
+    4:['bolo','doce','cafe','maca','sopa','nata','pure','suco','casa','bola','mesa','vida','rede','nome','sede','muro','fogo','mala','gato','pata','urso','pena','flor','pais','luta','remo','sete','nove','seis'],
+    5:['tigre','panda','cervo','veado','hiena','pomba','pulga','porco','grilo','tenca','trigo','dingo','fossa','fenda','bicho','zebra','tenis','golfe','skate','surfe','rugby','volei','dardo','canoa','manga','prato','forno','chefe','livro','porta','folha','mundo','noite','tarde','banco','piano','vento','areia','vidro','farol','prata','caule','abreu','zango','navio','barco','ninho','garfo','sorte','nuvem','gosto','conto','carta','pilha','caixa','moldo','festa','pista','tinta','pedra','janta','beijo','cacho','tenda','censo','pauta','atomo','vacao','calor','corpo','cesta','cinto','bolso','pasta','barba','pular'],
+    6:['celula','atomos','arvore','neutro','reator','orbita','teoria','genoma','planta','trilha','cabelo','casaco','camisa','ferrad','banana','cenour','tomato','beterr','pacote','cebola','pepino','vidros','ponche','passar','cidade','estado','jantar','cheiro','pluvio','quadro','panela','viagem'],
+  },
+  en:{
+    4:['cake','soup','taco','rice','kiwi','pear','lime','corn','home','ball','room','life','tree','fire','moon','star','fish','bird','milk','salt','wind','rain','snow','door','road','gold','book','lamp','mask','nest','leaf','rock','wave','boat','song','lake','dark','gift'],
+    5:['tiger','panda','horse','zebra','eagle','koala','snake','mouse','rugby','skier','darts','chess','rodeo','skate','padel','apple','bread','mango','melon','berry','grape','lemon','peach','table','chair','phone','music','piano','cloud','storm','river','ocean','field','stone','brick','party','happy','smile','green','house','water','candy','juice','beach','night','light','flash','lunch'],
+    6:['planet','energy','magnet','rocket','theory','quartz','copper','liquid','coffee','basket','candle','garden','island','market','nature','orange','purple','silver','summer','winter','father','mother','friend','school','button','cheese','tomato','carrot','bottle','ticket','forest','dinner','pepper','butter'],
+  },
+};
+
+/* ---------------------------------------------------------------------------
+   2. TEXTOS (i18n)
+   As chaves marcadas com "produto" espelham `src/data/strings.ts`.
+   ------------------------------------------------------------------------- */
+const STRINGS = {
+  pt:{
+    'a11y.skip':'Pular para o jogo',
+    'proto.simulate':'Simular “já jogou hoje”',
+    'tab.home':'Início','tab.game':'Partida','tab.result':'Resultado','tab.stats':'Estatísticas',
+    'lang.label':'Idioma',
+
+    'brand':'cacaPalavras',
+
+    'home.eyebrow':'Palavra do dia',
+    'home.themeField':'Tema de hoje',
+    'home.themeHint':'No jogo real o tema muda sozinho todo dia. Aqui você pode trocar para testar.',
+    'home.play':'Jogar',
+    'home.train':'Treinar',
+    'home.trainHint':'Treinar não gasta o jogo do dia nem quebra sua sequência.',
+    'home.rules':'Adivinhe a palavra do tema em até <strong>{n} tentativas</strong>. Verde acertou a posição, amarelo tem a letra, cinza não tem.',
+    'home.mini':'Resumo rápido',
+    'home.miniStreak':'sequência','home.miniWins':'vitórias','home.miniRate':'de acerto',
+
+    'done.title':'Você já jogou hoje',
+    'done.done':'Você já acertou a palavra de hoje. A próxima chega em',
+    'done.train':'Treinar agora',
+
+    'game.back':'Voltar ao início',
+    'game.help':'Como jogar',
+    'game.helpTitle':'Como jogar',
+    'game.helpBody':'Acerte a palavra do tema em {n} tentativas. Cada tentativa é uma palavra inteira: {ok} acertou a posição, {warn} tem a letra em outro lugar, {no} não tem a letra.',
+    'game.progress':'Tentativa {i} de {n}',
+    'game.progressFirst':'Tentativa 1 de {n}',
+    'game.trainChip':'Treino — não conta para a sequência',
+    'game.reveal':'Escrever tentativa',
+    'game.revealSub':'Toque aqui para abrir o teclado',
+    'game.send':'Enviar','game.sendEn':'Enter',
+    'game.backspace':'Apagar','game.backspaceEn':'Backspace',
+    'game.endWin':'Acertou! A palavra era {word}.',
+    'game.endLose':'Não foi desta vez. A palavra era {word}.',
+    'game.viewResult':'Ver resultado',
+    'game.triesLeft':'Faltam {n} tentativas',
+
+    'err.empty':'Digite uma palavra antes de enviar.',
+    'err.length':'A palavra tem {n} letras. Faltam {k}.',
+    'err.repeat':'Você já tentou essa palavra. Ela está lá em cima.',
+    'err.unknown':'Não encontramos essa palavra.',
+    'err.unknownAsk':'Usar mesmo assim?',
+    'err.unknownYes':'Usar mesmo assim','err.unknownNo':'Trocar',
+    'err.letters':'Use só letras.',
+    'err.copyFail':'Não foi possível copiar.',
+
+    'tile.correct':'Posição {pos}: {letter}, letra correta na posição',
+    'tile.present':'Posição {pos}: {letter}, letra presente mas fora da posição',
+    'tile.absent':'Posição {pos}: {letter}, essa letra não existe na palavra',
+    'tile.empty':'Posição {pos}: vazia',
+    'tile.active':'Posição {pos}: {letter}, onde você está digitando',
+    'key.state.correct':'letra já acertada',
+    'key.state.present':'letra já existe em outro lugar',
+    'key.state.absent':'letra que não existe na palavra',
+
+    'status.correct':'{n} letra no lugar certo',
+    'status.correctPl':'{n} letras no lugar certo',
+    'status.present':'{n} em outro lugar',
+    'status.presentPl':'{n} em outro lugar',
+    'status.none':'nenhuma letra no lugar certo',
+    'status.nonePresent':'nenhuma em outro lugar',
+    'status.noneAll':'Nenhuma letra da tentativa está na palavra.',
+    'status.attempt':'Tentativa {i}: {c}, {p}.',
+    'status.keepGoing':'Ainda não é essa. {left}',
+
+    'res.win':'Você acertou!',
+    'res.lose':'Fim de jogo',
+    'res.wordWas':'A palavra era {word}.',
+    'res.used':'tentativas usadas',
+    'res.usedOf':'de {total}',
+    'res.try':'tentativa','res.tries':'tentativas',
+    'res.streak':'Sequência',
+    'res.streakDay':'{n} dia','res.streakDays':'{n} dias',
+    'res.bestStreak':'Melhor sequência',
+    'res.share':'Compartilhar',
+    'res.copy':'Copiar',
+    'res.copied':'Copiado!',
+    'res.shareHint':'Sem revelar a palavra.',
+    'res.home':'Voltar ao início',
+    'res.stats':'Ver estatísticas',
+    'res.emptyTitle':'Você ainda não jogou hoje',
+    'res.emptyBody':'Jogue a palavra de hoje e seu resultado aparece aqui.',
+    'res.playNow':'Jogar',
+    'res.dayNumber':'Palavra do dia nº {n}',
+    'res.gridLabel':'Grade do resultado: {c} letras no lugar certo, {p} em outro lugar, {a} ausentes.',
+
+    'stats.title':'Estatísticas',
+    'stats.currentStreak':'Sequência atual',
+    'stats.bestStreak':'Melhor sequência',
+    'stats.games':'Partidas',
+    'stats.wins':'Vitórias',
+    'stats.winRate':'% de acerto',
+    'stats.lastWord':'Última palavra',
+    'stats.distribution':'Distribuição de tentativas',
+    'stats.lastNone':'Nenhuma ainda',
+    'stats.empty':'Você ainda não jogou nenhuma partida.',
+    'stats.playToday':'Jogar hoje',
+    'stats.days':'dias seguidos',
+
+    'nav.home':'Início','nav.stats':'Estatísticas',
+    'cnt.letter':'{n} letra','cnt.letters':'{n} letras',
+  },
+  en:{
+    'a11y.skip':'Skip to the game',
+    'proto.simulate':'Simulate “already played today”',
+    'tab.home':'Home','tab.game':'Game','tab.result':'Result','tab.stats':'Statistics',
+    'lang.label':'Language',
+
+    'brand':'cacaPalavras',
+
+    'home.eyebrow':'Word of the day',
+    'home.themeField':"Today's theme",
+    'home.themeHint':'In the real game the theme changes on its own every day. You can switch it here to test.',
+    'home.play':'Play',
+    'home.train':'Practice',
+    'home.trainHint':'Practice does not use up your daily word or break your streak.',
+    'home.rules':'Guess the themed word in up to <strong>{n} tries</strong>. Green got the position, yellow has the letter, gray does not.',
+    'home.mini':'Quick summary',
+    'home.miniStreak':'streak','home.miniWins':'wins','home.miniRate':'win rate',
+
+    'done.title':'You already played today',
+    'done.done':'You already solved today’s word. The next one arrives in',
+    'done.train':'Practice now',
+
+    'game.back':'Back to home',
+    'game.help':'How to play',
+    'game.helpTitle':'How to play',
+    'game.helpBody':'Find the themed word in {n} tries. Every try is a whole word: {ok} got the position, {warn} has the letter somewhere else, {no} does not have the letter.',
+    'game.progress':'Attempt {i} of {n}',
+    'game.progressFirst':'Attempt 1 of {n}',
+    'game.trainChip':'Practice — does not count for your streak',
+    'game.reveal':'Type my guess',
+    'game.revealSub':'Tap here to open the keyboard',
+    'game.send':'Enter','game.sendEn':'Enter',
+    'game.backspace':'Delete','game.backspaceEn':'Backspace',
+    'game.endWin':'You got it! The word was {word}.',
+    'game.endLose':'Not this time. The word was {word}.',
+    'game.viewResult':'See result',
+    'game.triesLeft':'{n} tries left',
+
+    'err.empty':'Type a word before submitting.',
+    'err.length':'The word must have {n} letters. {k} to go.',
+    'err.repeat':'You already tried that word. It is up top.',
+    'err.unknown':'We could not find that word.',
+    'err.unknownAsk':'Use it anyway?',
+    'err.unknownYes':'Use it anyway','err.unknownNo':'Change it',
+    'err.letters':'Letters only, please.',
+    'err.copyFail':'Could not copy.',
+
+    'tile.correct':'Position {pos}: {letter}, correct letter in position',
+    'tile.present':'Position {pos}: {letter}, letter present but in another position',
+    'tile.absent':'Position {pos}: {letter}, this letter is not in the word',
+    'tile.empty':'Position {pos}: empty',
+    'tile.active':'Position {pos}: {letter}, where you are typing',
+    'key.state.correct':'letter already solved',
+    'key.state.present':'letter exists somewhere else',
+    'key.state.absent':'letter not in the word',
+
+    'status.correct':'{n} letter right spot',
+    'status.correctPl':'{n} letters right spot',
+    'status.present':'{n} in another spot',
+    'status.presentPl':'{n} in other spots',
+    'status.none':'no letter in the right spot',
+    'status.nonePresent':'none in another spot',
+    'status.noneAll':'None of those letters are in the word.',
+    'status.attempt':'Attempt {i}: {c}, {p}.',
+    'status.keepGoing':'Not this one yet. {left}',
+
+    'res.win':'You got it!',
+    'res.lose':'Game over',
+    'res.wordWas':'The word was {word}.',
+    'res.used':'tries used',
+    'res.usedOf':'of {total}',
+    'res.try':'try','res.tries':'tries',
+    'res.streak':'Streak',
+    'res.streakDay':'{n} day','res.streakDays':'{n} days',
+    'res.bestStreak':'Best streak',
+    'res.share':'Share',
+    'res.copy':'Copy',
+    'res.copied':'Copied!',
+    'res.shareHint':'It never reveals the word.',
+    'res.home':'Back to home',
+    'res.stats':'See statistics',
+    'res.emptyTitle':'You have not played today',
+    'res.emptyBody':'Play today’s word and your result shows up here.',
+    'res.playNow':'Play',
+    'res.dayNumber':'Word of the day #{n}',
+    'res.gridLabel':'Result grid: {c} letters right spot, {p} in another spot, {a} missing.',
+
+    'stats.title':'Statistics',
+    'stats.currentStreak':'Current streak',
+    'stats.bestStreak':'Best streak',
+    'stats.games':'Games',
+    'stats.wins':'Wins',
+    'stats.winRate':'Win rate',
+    'stats.lastWord':'Last word',
+    'stats.distribution':'Guess distribution',
+    'stats.lastNone':'None yet',
+    'stats.empty':'You have not played any game yet.',
+    'stats.playToday':'Play today',
+    'stats.days':'days in a row',
+
+    'nav.home':'Home','nav.stats':'Statistics',
+    'cnt.letter':'{n} letter','cnt.letters':'{n} letters',
+  },
+};
+
+/* ---------------------------------------------------------------------------
+   3. REGRAS PURAS (espelham src/lib/*)
+   ------------------------------------------------------------------------- */
+function normalize(s){
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+function isPlainLetters(s){ return /^[a-z]+$/.test(s); }
+function maxAttempts(length){ return length <= 4 ? 6 : 7; }
+
+/**
+ * Feedback por letra — mesma ordem de passagens de `src/lib/feedback.ts`:
+ * verdes primeiro (consumindo a ocorrência), amarelos depois, cinza é o excedente.
+ */
+function computeFeedback(answer, guess){
+  const a = normalize(answer), g = normalize(guess);
+  const out = new Array(g.length).fill('absent');
+  const remaining = new Map();
+  for(let i=0;i<a.length;i++){
+    if(g[i] === a[i]) out[i] = 'correct';
+    else remaining.set(a[i], (remaining.get(a[i]) || 0) + 1);
+  }
+  for(let i=0;i<g.length;i++){
+    if(out[i] === 'correct') continue;
+    const left = remaining.get(g[i]) || 0;
+    if(left > 0){ out[i] = 'present'; remaining.set(g[i], left - 1); }
+  }
+  return out;
+}
+
+/** Estado memorizado das teclas — prioridade green > yellow > gray. */
+function deriveKeyState(attempts){
+  const state = {}, rank = { absent:0, present:1, correct:2 };
+  for(const attempt of attempts){
+    const guess = normalize(attempt.guess);
+    attempt.statuses.forEach((st,i)=>{
+      const letter = guess[i]; if(!letter) return;
+      if(!state[letter] || rank[st] > rank[state[letter]]) state[letter] = st;
+    });
+  }
+  return state;
+}
+
+/** FNV-1a + mulberry32 — mesma família de `src/lib/daily.ts` (determinístico). */
+function hashString(value){
+  let hash = 0x811c9dc5;
+  for(let i=0;i<value.length;i++){ hash ^= value.charCodeAt(i); hash = Math.imul(hash, 0x01000193); }
+  return hash >>> 0;
+}
+function mulberry32(seed){
+  let state = seed >>> 0;
+  return function(){
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function toDateKey(date){
+  const y = date.getFullYear(), m = String(date.getMonth()+1).padStart(2,'0'), d = String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+function previousDateKey(key){
+  const [y,m,d] = key.split('-').map(Number);
+  const dt = new Date(y, m-1, d, 12,0,0,0); dt.setDate(dt.getDate()-1); return toDateKey(dt);
+}
+function dayNumber(key){
+  const [y,m,d] = key.split('-').map(Number);
+  return Math.floor((Date.UTC(y,m-1,d) - Date.UTC(2024,0,1)) / 86400000) + 1;
+}
+/** Tema do dia: determinístico e nunca igual ao tema de ontem. */
+function themeIndexFor(dateKey, lang){
+  const raw = (key) => {
+    const rng = mulberry32(hashString(`${key}|${lang}|theme`));
+    return Math.floor(rng() * THEME_IDS.length);
+  };
+  const cur = raw(dateKey), prev = raw(previousDateKey(dateKey));
+  return cur === prev ? (cur + 1) % THEME_IDS.length : cur;
+}
+function dailyPuzzle(dateKey, lang, forcedThemeId){
+  const themeId = forcedThemeId || THEME_IDS[themeIndexFor(dateKey, lang)];
+  const theme = THEMES[themeId];
+  /* Filtro de segurança: só entram no sorteio palavras do comprimento do
+     tema. Sem isso, UMA palavra fora do comprimento (ex.: "cavalo", 6 letras,
+     na lista de "animais", que é 5) quebraria a partida: a grade mostraria 5
+     casas e a resposta teria 6 letras — a vitória seria impossível. */
+  const pool = WORDS[lang][themeId].filter(w => w.length === theme.length);
+  const rng = mulberry32(hashString(`${dateKey}|${lang}|${themeId}|word`));
+  const answer = pool[Math.floor(rng() * pool.length)];
+  return { dateKey, language:lang, themeId, length:theme.length, answer, normalizedAnswer:normalize(answer), dayNumber:dayNumber(dateKey) };
+}
+
+/**
+ * Auditoria de conteúdo no boot.
+ *
+ * O conteúdo do jogo é a parte mais fácil de quebrar em silêncio: uma palavra
+ * com o comprimento errado não dá erro em lugar nenhum — ela só faz a partida
+ * virar um beco sem saída. O mesmo vale para o dicionário de tentativas, onde
+ * uma palavra na chave errada nunca é alcançável (a validação de comprimento
+ * acontece antes da consulta ao dicionário).
+ */
+function assertContentIntegrity(){
+  const problems = [];
+  for(const lang of Object.keys(WORDS)){
+    for(const themeId of THEME_IDS){
+      const expected = THEMES[themeId].length;
+      WORDS[lang][themeId].forEach(w => {
+        if(w.length !== expected) problems.push(`WORDS.${lang}.${themeId}: "${w}" tem ${w.length} letras (esperado ${expected})`);
+      });
+    }
+    for(const len of Object.keys(GUESSES[lang])){
+      GUESSES[lang][len].forEach(w => {
+        if(w.length !== Number(len)) problems.push(`GUESSES.${lang}[${len}]: "${w}" tem ${w.length} letras`);
+      });
+    }
+  }
+  if(problems.length){
+    console.warn('[cacaPalavras] Conteúdo inconsistente:\n' + problems.join('\n'));
+  }
+  return problems;
+}
+function msUntilNextDay(now){
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0,0,0,0);
+  return next.getTime() - now.getTime();
+}
+function formatCountdown(ms){
+  const total = Math.max(0, Math.floor(ms/1000));
+  return [Math.floor(total/3600), Math.floor((total%3600)/60), total%60]
+    .map(n => String(n).padStart(2,'0')).join(':');
+}
+function format(template, values){
+  return template.replace(/\{(\w+)\}/g, (_,k) => String(values[k] !== undefined ? values[k] : `{${k}}`));
+}
+
+/* ---------------------------------------------------------------------------
+   4. ESTADO
+   ------------------------------------------------------------------------- */
+const state = {
+  lang: 'pt',
+  screen: 'home',
+  themeId: null,           // tema forçado pelo seletor (demo). null = tema do dia.
+  game: null,              // { puzzle, maxAttempts, attempts[], outcome, current, cursor, isPractice }
+  keyboardRevealed: false,
+  helpOpen: false,
+  pendingWord: null,       // palavra aguardando confirmação ("usar mesmo assim")
+  stats: {
+    currentStreak: 0, bestStreak: 0, games: 0, wins: 0,
+    lastPlayedDate: null, lastWord: null, guessDistribution: [],
+  },
+  playedToday: false,      // consumiu o jogo do dia
+  simPlayed: false,        // switch de demonstração no chrome do protótipo
+};
+
+const SYMBOL = { correct:'✓', present:'↑', absent:'✗' };
+/*
+ * Layout do teclado.
+ * Nota de produto: NÃO existe tecla de "ç" no teclado virtual. A cedilha é
+ * normalizada para "c" (src/lib/normalize.ts), então uma tecla "Ç" que
+ * digitasse "c" ensinaria o jogador a errado. Como nenhuma resposta do MVP
+ * contém "ç", a tecla é omitida em vez de enganar.
+ */
+const KEYROWS = [
+  ['q','w','e','r','t','y','u','i','o','p'],
+  ['a','s','d','f','g','h','j','k','l'],
+  ['backspace','z','x','c','v','b','n','m','enter'],
+];
+
+/* ---------------------------------------------------------------------------
+   5. HELPERS DE TEXTO
+   ------------------------------------------------------------------------- */
+function t(key, vars){
+  const table = STRINGS[state.lang] || STRINGS.pt;
+  const raw = table[key] !== undefined ? table[key] : (STRINGS.pt[key] !== undefined ? STRINGS.pt[key] : key);
+  return vars ? format(raw, vars) : raw;
+}
+function plural(n, keySingular, keyPlural, vars){
+  const all = Object.assign({}, vars);
+  all.n = n;
+  return t(n === 1 ? keySingular : keyPlural, all);
+}
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function themeLabel(id){ return THEMES[id].label[state.lang]; }
+function currentThemeId(){
+  if(state.themeId) return state.themeId;
+  return THEME_IDS[themeIndexFor(toDateKey(new Date()), state.lang)];
+}
+function hasPlayedToday(){ return state.simPlayed || state.playedToday; }
+function winRate(){ return state.stats.games === 0 ? 0 : Math.round(state.stats.wins / state.stats.games * 100); }
+
+/* ---------------------------------------------------------------------------
+   6. RENDER — TOPO
+   ------------------------------------------------------------------------- */
+function renderTopbar(){
+  const left = [], right = [];
+  const lang = `
+    <div class="lang" role="group" aria-label="${esc(t('lang.label'))}">
+      <button type="button" data-lang="pt" aria-pressed="${state.lang === 'pt'}">PT</button>
+      <button type="button" data-lang="en" aria-pressed="${state.lang === 'en'}">EN</button>
+    </div>`;
+
+  if(state.screen === 'home'){
+    left.push(`<span class="brand">caca<b>Palavras</b></span>`);
+    right.push(lang);
+  } else {
+    left.push(`<button class="icon-btn" type="button" data-act="home" aria-label="${esc(t('game.back'))}">←</button>`);
+    if(state.screen === 'game'){
+      right.push(`<button class="icon-btn" type="button" data-act="help" aria-label="${esc(t('game.help'))}" aria-expanded="${state.helpOpen}" aria-controls="helpBox">?</button>`);
+    }
+    right.push(lang);
+  }
+
+  let title = '';
+  if(state.screen === 'game' && state.game){
+    title = `${themeLabel(state.game.puzzle.themeId)} · ${plural(state.game.puzzle.length, 'cnt.letter', 'cnt.letters')}`;
+  } else if(state.screen === 'result'){
+    title = t('tab.result');
+  } else if(state.screen === 'stats'){
+    title = t('stats.title');
+  }
+
+  document.getElementById('topbar').innerHTML =
+    `<div class="topbar-left">${left.join('')}</div>
+     <div class="topbar-title">${esc(title)}</div>
+     <div class="topbar-right">${right.join('')}</div>`;
+}
+
+/* ---------------------------------------------------------------------------
+   7. RENDER — TELA INICIAL
+   ------------------------------------------------------------------------- */
+function renderHome(){
+  const panel = document.getElementById('panel-home');
+  const themeId = currentThemeId();
+  const theme = THEMES[themeId];
+  const len = theme.length;
+  const attempts = maxAttempts(len);
+  const played = hasPlayedToday();
+
+  /* Estado vazio amigável (A3): a "forma" da palavra aparece antes de existir. */
+  const slots = Array.from({length:len},
+    () => '<span class="slot" aria-hidden="true"><span class="slot-line"></span></span>').join('');
+
+  const chips = THEME_IDS.map(id => `
+    <button class="chip" type="button" role="radio" data-theme="${id}" aria-checked="${id === themeId}">
+      <span class="chip-icon" aria-hidden="true">${THEMES[id].icon}</span>
+      <span>${esc(themeLabel(id))}</span>
+    </button>`).join('');
+
+  let playBlock;
+  if(played){
+    /* A5 — cartão neutro, sem culpa, com saída para o treino. */
+    playBlock = `
+      <div class="done-card">
+        <div class="done-badge" aria-hidden="true">✓</div>
+        <h2>${esc(t('done.title'))}</h2>
+        <p class="done-text">${esc(t('done.done'))}<br>
+          <span class="countdown" id="countdown">--:--:--</span>
+        </p>
+        <button class="btn btn-secondary btn-lg" type="button" data-act="train" style="margin-top:12px">${esc(t('done.train'))}</button>
+      </div>`;
+  } else {
+    playBlock = `
+      <button class="btn btn-primary btn-lg" type="button" data-act="play">${esc(t('home.play'))}</button>
+      <button class="btn btn-ghost" type="button" data-act="train">${esc(t('home.train'))}</button>
+      <p class="hint" style="text-align:center">${esc(t('home.trainHint'))}</p>`;
+  }
+
+  const mini = `
+    <ul class="mini-stats" aria-label="${esc(t('home.mini'))}">
+      <li class="mini-stat"><span class="mini-num">${state.stats.currentStreak}</span><span class="mini-lab">${esc(t('home.miniStreak'))}</span></li>
+      <li class="mini-stat"><span class="mini-num">${state.stats.wins}</span><span class="mini-lab">${esc(t('home.miniWins'))}</span></li>
+      <li class="mini-stat"><span class="mini-num">${winRate()}%</span><span class="mini-lab">${esc(t('home.miniRate'))}</span></li>
+    </ul>`;
+
+  panel.innerHTML = `
+    <div class="body">
+      <section class="hero">
+        <p class="eyebrow">${esc(t('home.eyebrow'))}</p>
+        <h1 class="hero-title"><span aria-hidden="true">${theme.icon}</span> ${esc(themeLabel(themeId))}</h1>
+        <p class="hero-len">${esc(plural(len, 'cnt.letter', 'cnt.letters'))}</p>
+        <div class="slots" aria-hidden="true">${slots}</div>
+      </section>
+
+      <div class="field">
+        <span class="field-label" id="themeLabel">${esc(t('home.themeField'))}</span>
+        <div class="chips" role="radiogroup" aria-labelledby="themeLabel">${chips}</div>
+        <p class="hint">${esc(t('home.themeHint'))}</p>
+      </div>
+
+      ${playBlock}
+
+      <p class="rules">${t('home.rules', { n: attempts })}</p>
+
+      ${mini}
+    </div>`;
+
+  if(played) startCountdown(); else stopCountdown();
+}
+
+/* ---------------------------------------------------------------------------
+   8. RENDER — TELA DE PARTIDA
+   ------------------------------------------------------------------------- */
+function tileAria(status, pos, letter){
+  if(status === 'correct') return t('tile.correct', { pos, letter });
+  if(status === 'present') return t('tile.present', { pos, letter });
+  if(status === 'absent')  return t('tile.absent',  { pos, letter });
+  return t('tile.empty', { pos });
+}
+
+function renderBoard(){
+  const g = state.game;
+  const n = g.puzzle.length;
+  const rows = [];
+
+  for(let r = 0; r < g.maxAttempts; r++){
+    const attempt = g.attempts[r];
+    const isActive = (r === g.attempts.length) && g.outcome === 'playing';
+    const cells = [];
+
+    for(let c = 0; c < n; c++){
+      if(attempt){
+        const st = attempt.statuses[c];
+        const letter = attempt.guess[c].toUpperCase();
+        cells.push(
+          `<div class="tile ${st}" role="gridcell" aria-label="${esc(tileAria(st, c+1, letter))}">
+             <span aria-hidden="true">${esc(letter)}</span>
+             <span class="badge" aria-hidden="true">${SYMBOL[st]}</span>
+           </div>`);
+      } else if(isActive){
+        const ch = g.current[c];
+        if(ch !== undefined){
+          const caret = (c === g.cursor) ? '<span class="caret" aria-hidden="true"></span>' : '';
+          cells.push(
+            `<div class="tile filled active" role="gridcell" aria-label="${esc(t('tile.active',{pos:c+1,letter:ch.toUpperCase()}))}">
+               <span aria-hidden="true">${esc(ch.toUpperCase())}</span>${caret}
+             </div>`);
+        } else {
+          const caret = (c === g.cursor) ? '<span class="caret" aria-hidden="true"></span>' : '';
+          cells.push(
+            `<div class="tile empty active" role="gridcell" aria-label="${esc(t('tile.empty',{pos:c+1}))}">${caret}</div>`);
+        }
+      } else {
+        cells.push(`<div class="tile empty" role="gridcell" aria-label="${esc(t('tile.empty',{pos:c+1}))}"></div>`);
+      }
+    }
+
+    rows.push(`<div class="row" role="row" style="--n:${n}" data-row="${r}">${cells.join('')}</div>`);
+  }
+
+  return `<div class="board" role="grid" aria-rowcount="${g.maxAttempts}" aria-colcount="${n}">${rows.join('')}</div>`;
+}
+
+function renderKeyboard(){
+  const g = state.game;
+  const keyState = deriveKeyState(g.attempts);
+  const rows = KEYROWS.map(row => {
+    const keys = row.map(k => {
+      if(k === 'backspace'){
+        return `<button class="key wide" type="button" data-key="backspace" aria-label="${esc(state.lang === 'pt' ? t('game.backspace') : t('game.backspaceEn'))}">⌫</button>`;
+      }
+      if(k === 'enter'){
+        return `<button class="key wide" type="button" data-key="enter" aria-label="${esc(state.lang === 'pt' ? t('game.send') : t('game.sendEn'))}">↵</button>`;
+      }
+      const st = keyState[k];
+      const sym = st ? SYMBOL[st] : '';
+      const label = st
+        ? `${k.toUpperCase()}, ${t('key.state.' + st)}`
+        : k.toUpperCase();
+      return `<button class="key" type="button" data-key="${k}" ${st ? `data-state="${st}"` : ''} aria-label="${esc(label)}">
+                ${esc(k.toUpperCase())}${sym ? `<span class="ksym" aria-hidden="true">${sym}</span>` : ''}
+              </button>`;
+    });
+    return `<div class="kb-row">${keys.join('')}</div>`;
+  });
+  return `<div class="keyboard" id="keyboard" role="group" aria-label="${esc(t('game.help'))}">${rows.join('')}</div>`;
+}
+
+function renderGame(){
+  const panel = document.getElementById('panel-game');
+  const g = state.game;
+
+  if(!g){
+    panel.innerHTML = `
+      <div class="body">
+        <div class="empty-note">${esc(t('res.emptyBody'))}</div>
+        <button class="btn btn-primary btn-lg" type="button" data-act="home">${esc(t('nav.home'))}</button>
+      </div>`;
+    return;
+  }
+
+  const attemptIndex = Math.min(g.attempts.length + 1, g.maxAttempts);
+  const progressText = g.attempts.length === 0
+    ? t('game.progressFirst', { n: g.maxAttempts })
+    : t('game.progress', { i: attemptIndex, n: g.maxAttempts });
+
+  const dots = Array.from({length:g.maxAttempts}, (_, i) => {
+    const a = g.attempts[i];
+    if(!a) return '<span class="pdot"></span>';
+    const cls = a.statuses.some(s => s === 'correct') ? 'pdot hit' : 'pdot on';
+    return `<span class="${cls}"></span>`;
+  }).join('');
+
+  const finished = g.outcome !== 'playing';
+
+  const kbZone = finished
+    ? `<button class="btn btn-primary btn-lg" type="button" data-act="result">${esc(t('game.viewResult'))}</button>`
+    : (state.keyboardRevealed
+        ? renderKeyboard()
+        : `<button class="btn btn-primary btn-lg" type="button" data-act="reveal">
+             <span aria-hidden="true">⌨</span> ${esc(t('game.reveal'))}
+           </button>
+           <p class="hint" style="text-align:center;margin-top:6px">${esc(t('game.revealSub'))}</p>`);
+
+  const legendItems = state.lang === 'pt'
+    ? [[SYMBOL.correct,'na posição'],[SYMBOL.present,'em outro lugar'],[SYMBOL.absent,'não existe']]
+    : [[SYMBOL.correct,'right spot'],[SYMBOL.present,'another spot'],[SYMBOL.absent,'not in word']];
+
+  panel.innerHTML = `
+    <div class="body">
+      ${g.isPractice ? `<span class="chip-note">${esc(t('game.trainChip'))}</span>` : ''}
+
+      <div class="progress">
+        <span class="progress-text" id="progressText">${esc(progressText)}</span>
+        <span class="progress-dots" aria-hidden="true">${dots}</span>
+      </div>
+
+      <div id="helpBox" class="help" ${state.helpOpen ? '' : 'hidden'}>
+        <h3>${esc(t('game.helpTitle'))}</h3>
+        <p>${esc(t('game.helpBody', { n: g.maxAttempts, ok:SYMBOL.correct, warn:SYMBOL.present, no:SYMBOL.absent }))}</p>
+      </div>
+
+      ${renderBoard()}
+
+      <p class="legend">${legendItems.map(([s,l]) => `<span><b>${s}</b> ${esc(l)}</span>`).join('')}</p>
+
+      <div class="feedback">
+        <p class="msg" id="feedbackText"></p>
+        <p class="msg error" id="feedbackError"></p>
+        <div class="msg-actions" id="feedbackActions"></div>
+      </div>
+
+      <div class="kb-zone">${kbZone}</div>
+    </div>`;
+}
+
+/* ---------------------------------------------------------------------------
+   9. RENDER — TELA DE RESULTADO
+   ------------------------------------------------------------------------- */
+function renderResult(){
+  const panel = document.getElementById('panel-result');
+  const g = state.game;
+
+  /* Estado vazio amigável: nada de tela em branco. */
+  if(!g || g.outcome === 'playing'){
+    panel.innerHTML = `
+      <div class="body">
+        <div class="empty-note">
+          <p style="font-weight:800;font-size:16px;color:var(--ink)">${esc(t('res.emptyTitle'))}</p>
+          <p style="margin-top:6px">${esc(t('res.emptyBody'))}</p>
+        </div>
+        <button class="btn btn-primary btn-lg" type="button" data-act="home">${esc(t('res.playNow'))}</button>
+      </div>`;
+    return;
+  }
+
+  const won = g.outcome === 'won';
+  const used = g.attempts.length;
+  const word = g.puzzle.answer.toUpperCase();
+  const streak = state.stats.currentStreak;
+
+  /* Grade de compartilhamento — SOMENTE o padrão, nunca a palavra. */
+  let gridCells = '';
+  let nCorrect = 0, nPresent = 0, nAbsent = 0;
+  g.attempts.forEach(row => row.statuses.forEach(st => {
+    gridCells += `<span class="share-cell ${st}"></span>`;
+    if(st === 'correct') nCorrect++; else if(st === 'present') nPresent++; else nAbsent++;
+  }));
+
+  const shareText = buildShareText(g, used);
+  const confetti = won ? renderConfetti() : '';
+
+  panel.innerHTML = `
+    <div class="body">
+      <section class="result-hero ${won ? 'win' : 'lose'}">
+        ${confetti}
+        <div class="result-badge" aria-hidden="true">${won ? '★' : '✕'}</div>
+        <h1 class="result-title">${esc(won ? t('res.win') : t('res.lose'))}</h1>
+        <p class="result-word">${esc(word)}</p>
+        <p class="result-meta">${esc(t('res.wordWas', { word: g.puzzle.answer }))}</p>
+        <p class="result-meta">${THEMES[g.puzzle.themeId].icon} ${esc(themeLabel(g.puzzle.themeId))} · ${esc(plural(g.puzzle.length,'cnt.letter','cnt.letters'))} · ${esc(t('res.dayNumber',{n:g.puzzle.dayNumber}))}</p>
+      </section>
+
+      <div class="result-stats">
+        <div class="rstat">
+          <span class="rnum">${used}</span>
+          <span class="rlab">${esc(t('res.used'))} · ${esc(t('res.usedOf',{total:g.maxAttempts}))}</span>
+        </div>
+        <div class="rstat">
+          <span class="rnum">${state.stats.bestStreak}</span>
+          <span class="rlab">${esc(t('res.bestStreak'))}</span>
+        </div>
+      </div>
+
+      <div class="streak-banner">
+        <span class="sicon" aria-hidden="true">🔥</span>
+        <div>
+          <div class="snum">${streak}</div>
+          <div class="slab">${esc(streak === 1 ? t('res.streakDay',{n:1}) : t('res.streakDays',{n:streak}))} · ${esc(t('res.streak'))}</div>
+        </div>
+      </div>
+
+      <section class="share">
+        <h2>${esc(t('res.share'))}</h2>
+        <p class="share-hint">${esc(t('res.shareHint'))}</p>
+        <div class="share-grid" style="--c:${g.puzzle.length}" role="img"
+             aria-label="${esc(t('res.gridLabel',{c:nCorrect,p:nPresent,a:nAbsent}))}">${gridCells}</div>
+        <pre class="share-text" id="shareText">${esc(shareText)}</pre>
+        <div class="share-actions">
+          <button class="btn btn-secondary" type="button" data-act="copy">${esc(t('res.copy'))}</button>
+          <button class="btn btn-ghost" type="button" data-act="share">${esc(t('res.share'))}</button>
+        </div>
+      </section>
+
+      <button class="btn btn-primary btn-lg" type="button" data-act="home">${esc(t('res.home'))}</button>
+      <button class="btn btn-quiet" type="button" data-act="stats">${esc(t('res.stats'))}</button>
+    </div>`;
+}
+
+function renderConfetti(){
+  const colors = ['#5B3DF5','#2F7D52','#E8B23A','#E4572E','#3D5AFE','#00B4D8'];
+  let html = '<div class="confetti" aria-hidden="true">';
+  for(let i=0;i<18;i++){
+    const left = 4 + (i * 5.4) % 92;
+    const delay = (i % 6) * 0.13;
+    const dur = 2.2 + (i % 4) * 0.25;
+    html += `<i style="left:${left}%;--c:${colors[i % colors.length]};animation-delay:${delay}s;animation-duration:${dur}s"></i>`;
+  }
+  return html + '</div>';
+}
+
+/** Mesmo formato de `src/lib/share.ts`: grid + texto. NUNCA revela a palavra. */
+function buildShareText(g, used){
+  const grid = g.attempts.map(row => row.statuses.map(st => ({
+    correct:'🟩', present:'🟨', absent:'⬛' })[st]).join('')).join('\n');
+  const line = state.lang === 'pt'
+    ? `Acabei de jogar hoje e usei ${used} tentativas!`
+    : `I just played today and used ${used} tries!`;
+  const streak = state.lang === 'pt'
+    ? `Sequência: ${state.stats.currentStreak}`
+    : `Streak: ${state.stats.currentStreak}`;
+  return [
+    `cacaPalavras #${g.puzzle.dayNumber} ${grid}`,
+    line,
+    `${streak} · ${used}/${g.maxAttempts}`,
+  ].join('\n');
+}
+
+/* ---------------------------------------------------------------------------
+   10. RENDER — ESTATÍSTICAS
+   ------------------------------------------------------------------------- */
+function renderStats(){
+  const panel = document.getElementById('panel-stats');
+  const s = state.stats;
+  const empty = s.games === 0;
+
+  const dist = s.guessDistribution && s.guessDistribution.length
+    ? s.guessDistribution.map((count, i) => {
+        const max = Math.max(1, ...s.guessDistribution);
+        return `<div class="dist-row">
+            <span class="dist-n">${i+1}</span>
+            <span class="dist-bar" style="width:${Math.round(count / max * 70)}px"></span>
+            <span>${count}</span>
+          </div>`;
+      }).join('')
+    : '';
+
+  panel.innerHTML = `
+    <div class="body">
+      <section class="stat-hero">
+        <div class="sh-num">🔥 ${s.currentStreak}</div>
+        <div class="sh-lab">${esc(t('stats.currentStreak'))} · ${esc(s.currentStreak === 1 ? t('res.streakDay',{n:1}) : t('res.streakDays',{n:s.currentStreak}))}</div>
+      </section>
+
+      ${empty ? `<div class="empty-note">${esc(t('stats.empty'))}</div>` : ''}
+
+      <div class="stat-grid">
+        <div class="stat-card"><span class="sc-num">${s.bestStreak}</span><span class="sc-lab">${esc(t('stats.bestStreak'))}</span></div>
+        <div class="stat-card"><span class="sc-num">${s.wins}</span><span class="sc-lab">${esc(t('stats.wins'))}</span></div>
+        <div class="stat-card"><span class="sc-num">${s.games}</span><span class="sc-lab">${esc(t('stats.games'))}</span></div>
+        <div class="stat-card"><span class="sc-num">${winRate()}%</span><span class="sc-lab">${esc(t('stats.winRate'))}</span></div>
+      </div>
+
+      <div class="last-word">
+        <div>
+          <span class="sc-lab">${esc(t('stats.lastWord'))}</span>
+          <div class="lw-word">${s.lastWord ? esc(s.lastWord.toUpperCase()) : '—'}</div>
+        </div>
+        <span class="sc-lab">${s.lastWord ? '' : esc(t('stats.lastNone'))}</span>
+      </div>
+
+      ${dist ? `<section class="share"><h2>${esc(t('stats.distribution'))}</h2><div class="dist" style="margin-top:10px">${dist}</div></section>` : ''}
+
+      <button class="btn btn-primary btn-lg" type="button" data-act="home">${esc(t('stats.playToday'))}</button>
+    </div>`;
+}
+
+/* ---------------------------------------------------------------------------
+   11. NAVEGAÇÃO
+   ------------------------------------------------------------------------- */
+function setScreen(screen){
+  state.screen = screen;
+  ['home','game','result','stats'].forEach(id => {
+    const panel = document.getElementById(`panel-${id}`);
+    const tab = document.getElementById(`tab-${id}`);
+    const active = id === screen;
+    panel.hidden = !active;
+    tab.setAttribute('aria-selected', String(active));
+    tab.tabIndex = active ? 0 : -1;
+  });
+  renderTopbar();
+  if(screen === 'home') renderHome();
+  if(screen === 'game') renderGame();
+  if(screen === 'result') renderResult();
+  if(screen === 'stats') renderStats();
+  window.scrollTo({ top:0, behavior:'auto' });
+}
+
+/* ---------------------------------------------------------------------------
+   12. LÓGICA DE JOGO
+   ------------------------------------------------------------------------- */
+function startGame(isPractice){
+  const dateKey = toDateKey(new Date());
+  const puzzle = dailyPuzzle(dateKey, state.lang, state.themeId);
+  state.game = {
+    puzzle,
+    maxAttempts: maxAttempts(puzzle.length),
+    attempts: [],
+    outcome: 'playing',
+    current: '',
+    cursor: 0,
+    isPractice: !!isPractice,
+  };
+  state.keyboardRevealed = false;
+  state.helpOpen = false;
+  state.pendingWord = null;
+  setScreen('game');
+}
+
+/**
+ * Re-render preservando o foco.
+ * Cada tecla digitada re-renderiza o painel inteiro; sem isto, o foco do
+ * teclado virtual seria perdido a cada tecla e o teclado físico/toque
+ * quebraria para quem navega por Tab.
+ */
+function renderGameKeepingFocus(){
+  const active = document.activeElement;
+  const key = active && active.dataset ? active.dataset.key : null;
+  renderGame();
+  if(key){
+    const next = document.querySelector(`[data-key="${key}"]`);
+    if(next) next.focus({ preventScroll:true });
+  }
+}
+
+function revealKeyboard(){
+  if(state.keyboardRevealed) return;
+  state.keyboardRevealed = true;
+  renderGameKeepingFocus();
+}
+
+function insertLetter(ch){
+  const g = state.game;
+  if(!g || g.outcome !== 'playing') return;
+  state.keyboardRevealed = true;      /* A4 — o teclado nasce no 1º toque */
+  if(g.current.length >= g.puzzle.length) return;
+  g.current = g.current.slice(0, g.cursor) + ch + g.current.slice(g.cursor);
+  g.cursor += 1;
+  renderGameKeepingFocus();
+}
+
+function backspace(){
+  const g = state.game;
+  if(!g || g.outcome !== 'playing') return;
+  if(g.cursor === 0) return;
+  g.current = g.current.slice(0, g.cursor - 1) + g.current.slice(g.cursor);
+  g.cursor -= 1;
+  renderGameKeepingFocus();
+}
+
+function moveCursor(delta){
+  const g = state.game;
+  if(!g) return;
+  g.cursor = Math.max(0, Math.min(g.current.length, g.cursor + delta));
+  renderGameKeepingFocus();
+}
+
+/** Dicionário de tentativas do idioma/comprimento (normalizado). */
+function isKnownWord(word, lang, length){
+  const list = GUESSES[lang] && GUESSES[lang][length];
+  const norm = normalize(word);
+  if(list && list.indexOf(norm) !== -1) return true;
+  /* Rede de segurança: a resposta do dia é sempre jogável. */
+  if(state.game && normalize(state.game.puzzle.answer) === norm) return true;
+  const pool = WORDS[lang][state.game.puzzle.themeId] || [];
+  return pool.some(w => normalize(w) === norm);
+}
+
+/* Mensagens: uma para o leitor de tela (região persistente) e uma visível. */
+function setStatus(message, kind){
+  const live = document.getElementById('liveResult');
+  if(live) live.textContent = message || '';
+  const visible = document.getElementById('feedbackText');
+  if(visible){
+    visible.textContent = message || '';
+    visible.className = 'msg' + (kind ? ' ' + kind : '');
+  }
+}
+function setError(message, withActions){
+  const live = document.getElementById('liveError');
+  if(live) live.textContent = message || '';
+  const visible = document.getElementById('feedbackError');
+  if(visible) visible.textContent = message || '';
+  const actions = document.getElementById('feedbackActions');
+  if(actions){
+    actions.innerHTML = withActions
+      ? `<button class="btn btn-sm btn-secondary" type="button" data-act="use-anyway">${esc(t('err.unknownYes'))}</button>
+         <button class="btn btn-sm btn-ghost" type="button" data-act="change-word">${esc(t('err.unknownNo'))}</button>`
+      : '';
+  }
+}
+
+function submitGuess(){
+  const g = state.game;
+  if(!g || g.outcome !== 'playing') return;
+
+  const word = normalize(g.current.trim());
+
+  /* (a) Vazia — não consome tentativa. */
+  if(!word){
+    setError(t('err.empty'));
+    shakeBoard();
+    return;
+  }
+  /* (b) Letras inválidas. */
+  if(!isPlainLetters(word)){
+    setError(t('err.letters'));
+    shakeBoard();
+    return;
+  }
+  /* (c) Comprimento errado — diz quantas faltam (A6). */
+  if(word.length !== g.puzzle.length){
+    setError(t('err.length', { n: g.puzzle.length, k: g.puzzle.length - word.length }));
+    shakeBoard();
+    return;
+  }
+  /* (d) Repetida — não consome tentativa, e aponta onde está. */
+  const previousIndex = g.attempts.findIndex(a => a.guess === word);
+  if(previousIndex !== -1){
+    setError(t('err.repeat'));
+    spotlightRow(previousIndex);
+    return;
+  }
+  /* (e) Palavra desconhecida — bloqueio SUAVE (A6): 2 toques, sem beco sem saída. */
+  if(!isKnownWord(word, state.lang, g.puzzle.length)){
+    state.pendingWord = word;
+    setError(t('err.unknown') + ' ' + t('err.unknownAsk'), true);
+    return;
+  }
+
+  applyGuess(word);
+}
+
+function applyGuess(word){
+  const g = state.game;
+  const statuses = computeFeedback(g.puzzle.answer, word);
+  g.attempts.push({ guess:word, statuses });
+  g.current = '';
+  g.cursor = 0;
+  state.pendingWord = null;
+
+  const correct = statuses.filter(s => s === 'correct').length;
+  const present = statuses.filter(s => s === 'present').length;
+  const win = normalize(word) === normalize(g.puzzle.answer);
+  const exhausted = g.attempts.length >= g.maxAttempts;
+
+  /* O estado é decidido ANTES do render: assim o resultado final já aparece
+     na grade e a animação de flip roda por cima (sem re-render que a apague). */
+  g.outcome = win ? 'won' : (exhausted ? 'lost' : 'playing');
+  if(win || exhausted) applyResultToStats(g.outcome, g.attempts.length);
+
+  renderGame();
+  setError('');
+
+  /* Flip da linha recém-preenchida. */
+  const row = document.querySelector(`.row[data-row="${g.attempts.length - 1}"]`);
+  if(row){
+    row.querySelectorAll('.tile').forEach((tile, i) => {
+      tile.style.setProperty('--i', i);
+      tile.classList.add('flip');
+    });
+  }
+
+  /* Resumo da tentativa: contagem, nunca revelação (A7).
+     Três variantes para a frase nunca sair truncada nem com "0" solto. */
+  let summary;
+  if(correct === 0 && present === 0){
+    summary = t('status.noneAll');
+  } else {
+    const cText = correct === 0
+      ? t('status.none')
+      : plural(correct, 'status.correct', 'status.correctPl');
+    const pText = present === 0
+      ? t('status.nonePresent')
+      : plural(present, 'status.present', 'status.presentPl');
+    summary = t('status.attempt', { i: g.attempts.length, c: cText, p: pText });
+  }
+  const left = g.maxAttempts - g.attempts.length;
+
+  if(win){
+    setStatus(t('game.endWin', { word: g.puzzle.answer }), 'ok');
+  } else if(exhausted){
+    setStatus(t('game.endLose', { word: g.puzzle.answer }), 'warn');
+  } else {
+    setStatus(summary + ' ' + t('status.keepGoing', { left: t('game.triesLeft', { n: left }) }), '');
+  }
+
+  if(win || exhausted){
+    renderTopbar();
+    /* A tela de resultado precisa "aparecer" sozinha (com animação de vitória).
+       Só navegamos se o jogador ainda estiver na partida. */
+    setTimeout(() => { if(state.screen === 'game') setScreen('result'); }, 1500);
+  }
+}
+
+function applyResultToStats(outcome, used){
+  const g = state.game;
+  if(g.isPractice) return;      /* treino não toca em stats nem streak */
+
+  const dateKey = g.puzzle.dateKey;
+  if(state.stats.lastPlayedDate !== dateKey){
+    /* Streak = dias consecutivos jogados. Perder NÃO zera (src/lib/rules.ts). */
+    const continues = state.stats.lastPlayedDate === previousDateKey(dateKey);
+    state.stats.currentStreak = continues ? state.stats.currentStreak + 1 : 1;
+    state.stats.bestStreak = Math.max(state.stats.bestStreak, state.stats.currentStreak);
+    state.stats.lastPlayedDate = dateKey;
+  }
+  state.stats.games += 1;
+  if(outcome === 'won') state.stats.wins += 1;
+  state.stats.lastWord = g.puzzle.answer;
+
+  const dist = state.stats.guessDistribution.slice();
+  while(dist.length < used) dist.push(0);
+  dist[used - 1] += 1;
+  state.stats.guessDistribution = dist;
+
+  state.playedToday = true;
+}
+
+function shakeBoard(){
+  const rows = document.querySelectorAll('.row');
+  if(!rows.length) return;
+  const row = rows[rows.length - 1];
+  row.classList.add('shake');
+  setTimeout(() => row.classList.remove('shake'), 420);
+}
+
+function spotlightRow(index){
+  const row = document.querySelector(`.row[data-row="${index}"]`);
+  if(!row) return;
+  row.classList.add('spotlight');
+  setTimeout(() => row.classList.remove('spotlight'), 1000);
+}
+
+/* ---------------------------------------------------------------------------
+   13. CONTAGEM REGRESSIVA (estado "já jogou hoje")
+   ------------------------------------------------------------------------- */
+let countdownTimer = null;
+function startCountdown(){
+  stopCountdown();
+  const tick = () => {
+    const el = document.getElementById('countdown');
+    if(!el) return stopCountdown();
+    el.textContent = formatCountdown(msUntilNextDay(new Date()));
+  };
+  tick();
+  countdownTimer = setInterval(tick, 1000);
+}
+function stopCountdown(){ if(countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; } }
+
+/* ---------------------------------------------------------------------------
+   14. COMPARTILHAR / COPIAR
+   ------------------------------------------------------------------------- */
+async function copyToClipboard(text){
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  }catch(e){ /* cai no fallback */ }
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly','');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  }catch(e){ return false; }
+}
+
+async function handleCopy(){
+  const text = (document.getElementById('shareText') || {}).textContent || '';
+  const ok = await copyToClipboard(text);
+  const btn = document.querySelector('[data-act="copy"]');
+  if(btn){
+    const original = btn.textContent;
+    btn.textContent = ok ? t('res.copied') : t('err.copyFail');
+    setTimeout(() => { if(btn.isConnected) btn.textContent = original; }, 1800);
+  }
+}
+
+async function handleShare(){
+  const text = (document.getElementById('shareText') || {}).textContent || '';
+  if(navigator.share){
+    try{
+      await navigator.share({ title: t('brand'), text });
+      return;
+    }catch(e){
+      if(e && e.name === 'AbortError') return; /* cancelou — não é erro */
+    }
+  }
+  await handleCopy();
+}
+
+/* ---------------------------------------------------------------------------
+   15. EVENTOS
+   ------------------------------------------------------------------------- */
+document.addEventListener('click', (event) => {
+  const target = event.target.closest('[data-act],[data-lang],[data-theme],[data-key],[data-screen]');
+  if(!target) return;
+
+  /* --- abas do protótipo --- */
+  if(target.dataset.screen){ setScreen(target.dataset.screen); return; }
+
+  /* --- idioma --- */
+  if(target.dataset.lang){
+    const lang = target.dataset.lang;
+    if(lang === state.lang) return;
+    state.lang = lang;
+    document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
+    /* Trocar de idioma reinicia a partida: o dicionário e a palavra mudam. */
+    if(state.game) state.game = null;
+    state.keyboardRevealed = false;
+    applyStaticI18n();
+    renderTopbar();
+    setScreen(state.screen);
+    return;
+  }
+
+  /* --- tema (demo) --- */
+  if(target.dataset.theme){
+    state.themeId = target.dataset.theme;
+    state.game = null;
+    renderHome();
+    return;
+  }
+
+  /* --- teclado virtual --- */
+  if(target.dataset.key){
+    const key = target.dataset.key;
+    if(key === 'enter'){ submitGuess(); return; }
+    if(key === 'backspace'){ backspace(); return; }
+    insertLetter(normalize(key));
+    return;
+  }
+
+  /* --- ações --- */
+  const act = target.dataset.act;
+  if(act === 'play'){ startGame(false); return; }
+  if(act === 'train'){ startGame(true); return; }
+  if(act === 'home'){ setScreen('home'); return; }
+  if(act === 'stats'){ setScreen('stats'); return; }
+  if(act === 'result'){ setScreen('result'); return; }
+  if(act === 'reveal'){ revealKeyboard(); return; }
+  if(act === 'copy'){ handleCopy(); return; }
+  if(act === 'share'){ handleShare(); return; }
+  if(act === 'help'){
+    state.helpOpen = !state.helpOpen;
+    renderGameKeepingFocus();
+    return;
+  }
+  if(act === 'use-anyway'){
+    if(state.pendingWord){ const w = state.pendingWord; applyGuess(w); }
+    return;
+  }
+  if(act === 'change-word'){
+    state.pendingWord = null;
+    setError('');
+    return;
+  }
+});
+
+/* Teclado físico (WCAG 2.1 — navegação completa por teclado). */
+document.addEventListener('keydown', (event) => {
+  if(event.metaKey || event.ctrlKey || event.altKey) return;
+
+  /* Setas entre abas do protótipo (padrão ARIA de tablist). */
+  const tabs = Array.from(document.querySelectorAll('.tab'));
+  const idx = tabs.indexOf(document.activeElement);
+  if(idx !== -1 && (event.key === 'ArrowRight' || event.key === 'ArrowLeft')){
+    event.preventDefault();
+    const next = (idx + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    tabs[next].focus();
+    setScreen(tabs[next].dataset.screen);
+    return;
+  }
+
+  if(state.screen !== 'game' || !state.game || state.game.outcome !== 'playing') return;
+
+  if(event.key === 'Enter'){ event.preventDefault(); submitGuess(); return; }
+  if(event.key === 'Backspace'){ event.preventDefault(); backspace(); return; }
+  if(event.key === 'ArrowLeft'){ event.preventDefault(); moveCursor(-1); return; }
+  if(event.key === 'ArrowRight'){ event.preventDefault(); moveCursor(1); return; }
+  if(event.key === 'Home'){ event.preventDefault(); state.game.cursor = 0; renderGameKeepingFocus(); return; }
+  if(event.key === 'End'){ event.preventDefault(); state.game.cursor = state.game.current.length; renderGameKeepingFocus(); return; }
+
+  if(event.key.length === 1){
+    const ch = normalize(event.key);
+    if(isPlainLetters(ch)){ event.preventDefault(); insertLetter(ch); }
+  }
+});
+
+/* Switch de demonstração do estado "já jogou hoje". */
+document.getElementById('simPlayed').addEventListener('change', (e) => {
+  state.simPlayed = e.target.checked;
+  renderHome();
+});
+
+/* ---------------------------------------------------------------------------
+   16. i18n ESTÁTICO (chrome do protótipo)
+   ------------------------------------------------------------------------- */
+function applyStaticI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const value = STRINGS[state.lang][key];
+    if(value !== undefined) el.textContent = value;
+  });
+  /* Rótulos das abas do protótipo também traduzem. */
+  document.querySelectorAll('.tab').forEach(tab => {
+    const value = STRINGS[state.lang]['tab.' + tab.dataset.screen];
+    if(value !== undefined) tab.textContent = value;
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   17. BOOT
+   ------------------------------------------------------------------------- */
+applyStaticI18n();
+assertContentIntegrity();
+renderTopbar();
+setScreen('home');
+</script>
+</body>
+</html>

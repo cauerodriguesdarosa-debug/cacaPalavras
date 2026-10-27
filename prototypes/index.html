@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>cacaPalavras — Galeria de protótipos</title>
+    <style>
+      :root {
+        --bg: #0e1116;
+        --surface: #161b22;
+        --surface-2: #1c232c;
+        --line: #2a333f;
+        --ink: #e8edf3;
+        --ink-2: #a8b4c2;
+        --ink-3: #7b8794;
+        --accent: #6ea8fe;
+        --radius: 16px;
+        --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--font);
+        line-height: 1.6;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      .wrap {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 4rem;
+      }
+
+      header.hero {
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 1.75rem;
+        margin-bottom: 2rem;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.3rem 0.75rem;
+      }
+
+      h1 {
+        font-size: clamp(1.9rem, 4vw, 2.9rem);
+        line-height: 1.15;
+        margin: 0.9rem 0 0.6rem;
+        letter-spacing: -0.02em;
+      }
+
+      .lede {
+        max-width: 68ch;
+        color: var(--ink-2);
+        margin: 0;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.25rem;
+      }
+
+      .chip {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--ink-2);
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.3rem 0.7rem;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .toolbar label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--ink-2);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+        gap: 1.25rem;
+        align-items: start;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card--winner {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px var(--accent), 0 18px 40px -24px rgba(110, 168, 254, 0.7);
+      }
+
+      .card__head {
+        padding: 1.1rem 1.15rem 1rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .card__kicker {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .badge {
+        font-size: 0.66rem;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #06111f;
+        background: var(--accent);
+        border-radius: 999px;
+        padding: 0.15rem 0.55rem;
+      }
+
+      .card h2 {
+        font-size: 1.25rem;
+        margin: 0.5rem 0 0.35rem;
+        letter-spacing: -0.01em;
+      }
+
+      .card p {
+        margin: 0;
+        font-size: 0.88rem;
+        color: var(--ink-2);
+      }
+
+      .traits {
+        list-style: none;
+        padding: 0;
+        margin: 0.85rem 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .traits li {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--ink-2);
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0.2rem 0.5rem;
+      }
+
+      .frame {
+        background: #000;
+        border-bottom: 1px solid var(--line);
+        padding: 0;
+      }
+
+      .frame iframe {
+        display: block;
+        width: 100%;
+        height: 720px;
+        border: 0;
+        background: #fff;
+      }
+
+      .card__foot {
+        padding: 0.9rem 1.15rem 1.1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        align-items: center;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        min-height: 2.5rem;
+        padding: 0 0.95rem;
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: var(--ink);
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        text-decoration: none;
+      }
+
+      .btn--primary {
+        color: #06111f;
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+
+      .note {
+        margin-top: 2.5rem;
+        padding: 1.4rem 1.5rem;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+      }
+
+      .note h2 {
+        margin: 0 0 0.75rem;
+        font-size: 1.05rem;
+      }
+
+      .note ul {
+        margin: 0;
+        padding-left: 1.1rem;
+        color: var(--ink-2);
+        font-size: 0.9rem;
+      }
+
+      .note li + li {
+        margin-top: 0.4rem;
+      }
+
+      .note code {
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 0.05rem 0.35rem;
+        font-size: 0.84em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="hero">
+        <span class="eyebrow">cacaPalavras · painel de design</span>
+        <h1>Três conceitos de interface para o mesmo jogo</h1>
+        <p class="lede">
+          Três mockups independentes, produzidos por agentes especialistas (UX, acessibilidade
+          web e design visual) a partir do mesmo PRD. Todos implementam as mesmas quatro telas
+          — Início, Partida, Resultado e Estatísticas — com os mesmos dados, para que a
+          comparação seja justa. Navegue pelas abas dentro de cada protótipo e alterne entre
+          PT e EN.
+        </p>
+        <div class="meta">
+          <span class="chip">Wordle-like · 4–6 letras</span>
+          <span class="chip">6 tentativas por desafio</span>
+          <span class="chip">Verde / amarelo / cinza + forma</span>
+          <span class="chip">WCAG 2.1 AA</span>
+          <span class="chip">PT-BR + EN</span>
+          <span class="chip">Modo treino</span>
+          <span class="chip">Compartilhamento sem spoiler</span>
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <label for="zoom">Zoom dos previews</label>
+        <input id="zoom" type="range" min="50" max="100" value="100" step="5" />
+        <span id="zoomLabel" style="font-size: 0.82rem; color: var(--ink-2); font-weight: 700">100%</span>
+      </div>
+
+      <div class="grid" id="grid">
+        <!-- Conceito A -->
+        <article class="card" data-concept="a">
+          <div class="card__head">
+            <div class="card__kicker">Conceito A · UX</div>
+            <h2>Clareza de Fluxo</h2>
+            <p>
+              Conceito orientado a tarefa: reduz o atrito dos primeiros 10 segundos, hierarquia
+              minimalista com um único acento por tela e microcopy direto. O teclado virtual
+              aparece por progressão, só quando a pessoa decide escrever.
+            </p>
+            <ul class="traits">
+              <li>Regra em 2 frases sempre visível</li>
+              <li>1 CTA por tela</li>
+              <li>Teclado com aparência progressiva</li>
+              <li>"Já jogou hoje" com contagem</li>
+              <li>Erros gentis, sem beco sem saída</li>
+            </ul>
+          </div>
+          <div class="frame">
+            <iframe src="a-fluxo-claro.html" title="Protótipo A — Clareza de Fluxo" loading="lazy"></iframe>
+          </div>
+          <div class="card__foot">
+            <a class="btn btn--primary" href="a-fluxo-claro.html" target="_blank" rel="noopener">
+              Abrir em tela cheia ↗
+            </a>
+            <a class="btn" href="a-fluxo-claro.html" download>Baixar HTML</a>
+          </div>
+        </article>
+
+        <!-- Conceito B -->
+        <article class="card" data-concept="b">
+          <div class="card__head">
+            <div class="card__kicker">Conceito B · Acessibilidade</div>
+            <h2>Shape-First</h2>
+            <p>
+              O jogo sem depender de cor: cada estado de feedback tem uma silhueta própria
+              (arredondado, chanfrado, tracejado) e um símbolo. Inclui modo sem cor, alto
+              contraste, tamanho de fonte ajustável e notas de conformidade WCAG.
+            </p>
+            <ul class="traits">
+              <li>Jogável em escala de cinza</li>
+              <li>Modo "sem cor" real</li>
+              <li>Preferências de fonte e contraste</li>
+              <li>aria-label por tile</li>
+              <li>Notas WCAG embutidas</li>
+            </ul>
+          </div>
+          <div class="frame">
+            <iframe src="b-acessivel.html" title="Protótipo B — Shape-First acessível" loading="lazy"></iframe>
+          </div>
+          <div class="card__foot">
+            <a class="btn btn--primary" href="b-acessivel.html" target="_blank" rel="noopener">
+              Abrir em tela cheia ↗
+            </a>
+            <a class="btn" href="b-acessivel.html" download>Baixar HTML</a>
+          </div>
+        </article>
+
+        <!-- Conceito C -->
+        <article class="card" data-concept="c">
+          <div class="card__head">
+            <div class="card__kicker">Conceito C · Design visual</div>
+            <h2>Identidade Temática</h2>
+            <p>
+              Cada tema do dia transforma a interface inteira: paleta própria, ilustração SVG
+              original, tipografia com personalidade, tiles com profundidade e celebração de
+              vitória. A decoração respeita a hierarquia — a grade continua sendo o foco.
+            </p>
+            <ul class="traits">
+              <li>Paleta por tema</li>
+              <li>Ilustrações SVG autorais</li>
+              <li>Tiles com profundidade</li>
+              <li>Confete na vitória</li>
+              <li>Selo de tema e nº do dia</li>
+            </ul>
+          </div>
+          <div class="frame">
+            <iframe src="c-visual-tematico.html" title="Protótipo C — Identidade visual temática" loading="lazy"></iframe>
+          </div>
+          <div class="card__foot">
+            <a class="btn btn--primary" href="c-visual-tematico.html" target="_blank" rel="noopener">
+              Abrir em tela cheia ↗
+            </a>
+            <a class="btn" href="c-visual-tematico.html" download>Baixar HTML</a>
+          </div>
+        </article>
+      </div>
+
+      <section class="note">
+        <h2>Como comparar</h2>
+        <ul>
+          <li>
+            <strong>Mesma base, três direções.</strong> Todos usam a mesma spec: palavra do dia
+            determinística, 6 tentativas por desafio, feedback por letra com
+            redundância de forma, 4 temas, 2 idiomas, modo treino e compartilhamento sem spoiler.
+          </li>
+          <li>
+            <strong>Conceito A</strong> é o mais forte em clareza de regra e velocidade de
+            primeiro uso; é o mais sóbrio visualmente.
+          </li>
+          <li>
+            <strong>Conceito B</strong> é o único que se mantém legível sem cor, e por isso o
+            mais defensável em acessibilidade — mas o mais distante da identidade "casual e
+            divertida" do PRD.
+          </li>
+          <li>
+            <strong>Conceito C</strong> é o mais memorável e o que melhor entrega a sensação de
+            ritual diário, ao custo de uma hierarquia visual que exige mais cuidado.
+          </li>
+          <li>
+            O zoom acima redimensiona os previews. Cada mockup também funciona offline: são
+            arquivos HTML autocontidos, sem dependências e sem requisições de rede.
+          </li>
+        </ul>
+      </section>
+
+      <section class="note" id="decisao">
+        <h2>Decisão de design adotada</h2>
+        <p style="margin: 0 0 0.75rem; color: var(--ink-2); font-size: 0.9rem">
+          O design implementado no app <strong>não é uma cópia de nenhum dos três</strong> — é
+          uma síntese dos três, decidida a partir do PRD, que pede ao mesmo tempo identidade
+          divertida e acessibilidade WCAG AA.
+        </p>
+        <ul>
+          <li>
+            <strong>De C (visual)</strong> foi adotada a paleta por tema, aplicada via custom
+            properties CSS; as ilustrações SVG autorais do tema; o selo de tema e o número do
+            dia como marcador de coleção; a celebração na vitória.
+          </li>
+          <li>
+            <strong>De B (acessibilidade)</strong> foi adotado o sistema de silhuetas das
+            tiles — arredondada, chanfrada e tracejada — com símbolos ✓ / ↑ / ✗ e
+            <code>aria-label</code> descritivo, a legenda permanente, o suporte a teclado
+            físico, a região <code>aria-live</code> e o foco visível. É a parte que
+            <strong>não se negocia</strong>: consta como critério de aceite do PRD.
+          </li>
+          <li>
+            <strong>De A (UX)</strong> foi adotada a hierarquia de CTA único, o "como jogar"
+            em duas frases sempre visível, o estado "já jogou hoje" com contagem regressiva
+            viva e os erros de validação gentis que dizem o próximo passo.
+          </li>
+          <li>
+            <strong>Rejeitado de A:</strong> o teclado de aparência progressiva — a digitação é
+            o ato principal do jogo e escondê-la cria um passo extra sem ganho.
+          </li>
+          <li>
+            <strong>Rejeitado de B:</strong> o modo "sem cor" como interruptor — a redundância
+            de forma já resolve daltonismo e impressão em P&amp;B sem custar um controle ao
+            usuário.
+          </li>
+          <li>
+            <strong>Rejeitado de C:</strong> decoração que compete com a grade. A regra
+            adotada é que <em>o tema pinta o cenário, nunca a grade</em>: verde, amarelo e
+            cinza têm o mesmo significado em todos os dias, porque são linguagem, não
+            decoração.
+          </li>
+        </ul>
+      </section>
+    </div>
+
+    <script>
+      // Zoom dos previews: escala os iframes sem mexer no layout dos mockups.
+      const zoom = document.getElementById('zoom');
+      const label = document.getElementById('zoomLabel');
+
+      function applyZoom() {
+        const value = Number(zoom.value);
+        label.textContent = value + '%';
+        document.querySelectorAll('.frame').forEach((frame) => {
+          const iframe = frame.querySelector('iframe');
+          const width = Math.round((frame.clientWidth * value) / 100);
+          iframe.style.width = width + 'px';
+          iframe.style.marginLeft = 'auto';
+          iframe.style.marginRight = 'auto';
+        });
+      }
+
+      zoom.addEventListener('input', applyZoom);
+      window.addEventListener('resize', applyZoom);
+      applyZoom();
+    </script>
+  </body>
+</html>

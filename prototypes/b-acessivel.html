@@ -1,0 +1,1879 @@
+<!doctype html>
+<html lang="pt-BR" data-fs="md" data-contrast="normal" data-nocolor="off" data-motion="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="description" content="Mockup do Conceito B (shape-first) do cacaPalavras: jogo de adivinhação de palavras sem dependência de cor, WCAG 2.1 AA.">
+<title>cacaPalavras — Conceito B: Shape-First Acessível</title>
+
+<!--
+================================================================================
+ CONCEITO B — DECISÕES DE ACESSIBILIDADE
+================================================================================
+ Protótipo estático (HTML único, sem build, sem rede). Lido por engenheiros:
+ cada decisão abaixo existe por um motivo de acessibilidade concreto.
+
+ 1. FORMA ANTES DE COR (WCAG 1.4.1). Os 3 estados de feedback têm SILHUETAS
+    distintas, não apenas cores: (a) correta = bloco com cantos muito
+    arredondados + ✓; (b) presente = bloco com um canto chanfrado + ↑;
+    (c) ausente = contorno tracejado vazado + ✗. Em escala de cinza
+    (impressão P&B, daltonismo, baixa visão) os três continuam distinguíveis.
+    A cor é redundante — nunca o único canal.
+
+ 2. MODO SEM COR REAL (1.4.1). Um toggle troca toda a paleta por uma rampa
+    cinza + texturas (hachura diagonal). Não é "quase sem cor": os estados
+    continuam hierarquicamente distintos e o texto permanece com contraste
+    medido. Um filtro grayscale() é aplicado como rede de segurança.
+
+ 3. TEXTO E SÍMBOLO SEMPRE (1.4.1 / 4.1.2). Cada tile carrega `aria-label`
+    descritivo ("Posição 2: A, letra correta na posição") e o símbolo é
+    redundante com o rótulo. A cor nunca é o único sinal nem o único rótulo.
+
+ 4. LEGENDA PERMANENTE (1.3.1 / 3.2.4). Uma faixa de legenda sempre visível
+    na tela de partida mostra os 3 estados com a MESMA forma + a palavra.
+    Nada depende de inferência nem de memória.
+
+ 5. ORDEM DE LEITURA DOM (1.3.2). A grade usa `role="list"` com `listitem`
+    por linha e `role="img"` + `aria-label` por tile: o leitor de tela anuncia
+    posição, letra e estado, sem ler o símbolo duas vezes.
+
+ 6. FALO MUITO VISÍVEL, NUNCA REMOVIDO (2.4.7 / 2.4.11). Outline de 3px com
+    offset, cor com contraste >= 3:1 sobre todos os fundos, mais um halo
+    claro. Nenhum `outline: none` no arquivo.
+
+ 7. TECLADO FÍSICO = TECLADO VIRTUAL (2.1.1). Backspace apaga, Enter envia,
+    letras digitam; o estado das teclas é espelhado nos dois caminhos e
+    marcado com o mesmo sistema de formas.
+
+ 8. ALVOS DE TOQUE (2.5.5 AAA / 2.5.8 AA). Altura mínima de 44px em 100% das
+    larguras; a largura acompanha a fileira (limite físico: 10 teclas × 44px
+    não cabem em 320px — ver notas). Espaço entre alvos preservado.
+
+ 9. ESCALA TIPOGRÁFICA REAL (1.4.4). A/A+/A++ alteram o tamanho raiz de
+    `rem`, e todo o layout é construído em `rem` — as tiles, o teclado e os
+    textos crescem de verdade, com reflow (sem scroll horizontal da página).
+
+10. PAINEL DE PREFERÊNCIAS COMO CONTROLE REAL. Tamanho do texto, alto
+    contraste, modo sem cor, reduzir animações e "anunciar por voz"
+    (aria-live) persistem em localStorage e são aplicados via atributos
+    `data-*` na raiz — sem re-render, sem dependência de JS para existir.
+
+11. MOVIMENTO (2.3.3). `prefers-reduced-motion: reduce` é respeitado
+    globalmente; a preferência do usuário só pode REDUZIR animação, nunca
+    reativá-la contra a preferência do sistema.
+
+12. ANÚNCIOS (4.1.3). `role="status"` anuncia o resultado de cada tentativa
+    em texto claro ("Linha 2. A na posição. E presente fora da posição.");
+    `role="alert"` anuncia erros de validação. Ambos podem ser desligados
+    pelo usuário (quem prefere ler no próprio ritmo).
+
+13. COMPARTILHAMENTO SEM REVELAR (privacidade + 1.4.1). O texto compartilhado
+    usa ■ ▨ □ + legenda — nunca emoji colorido — para funcionar em impressão
+    P&B, e jamais inclui a palavra.
+
+14. ESCOPO. Este arquivo é um mockup: todos os dados são locais e
+    determinísticos. Não há rede, CDN, webfont ou imagem externa.
+================================================================================
+-->
+
+<style>
+/* ============================================================================
+   1. TOKENS DE DESIGN
+   A paleta é 100% dirigida por custom properties: é o que permite que o
+   "Modo Sem Cor" e o "Alto Contraste" sejam trocas reais de skin, e não
+   gambiarras em regras isoladas.
+   ========================================================================== */
+:root{
+  /* Tipografia — escala em rem para que A/A+/A++ reflOwem de verdade. */
+  --fs-scale: 1;
+
+  /* Superfícies e tinta (contraste medido — ver "Notas de acessibilidade"). */
+  --paper:        #f4f1ea;
+  --surface:      #ffffff;
+  --surface-2:    #eceef1;
+  --ink:          #12161d;   /* 18.13:1 sobre --surface */
+  --ink-2:        #454d5a;   /*  8.53:1 sobre --surface */
+  --ink-3:        #5a6270;   /*  6.15:1 sobre --surface */
+  --line:         #6f7885;   /*  4.47:1 sobre --surface (>= 3:1) */
+  --line-soft:    #b9c0c9;
+
+  /* Marca / ação primária */
+  --brand:        #0b52c4;   /* 6.96:1 com texto branco */
+  --brand-ink:    #ffffff;
+  --brand-dark:   #093f9b;
+
+  /* Foco: >= 3:1 contra todos os fundos usados. */
+  --focus:        #0b52c4;
+  --focus-halo:   rgba(11, 82, 196, .30);
+
+  /* Estados do feedback. Cada um tem: preenchimento, tinta e borda. */
+  --ok-fill:      #0f6b3d;   /* preenchimento sólido  */
+  --ok-ink:       #ffffff;   /* 6.58:1 sobre --ok-fill */
+  --ok-line:      #0f5c34;   /* 8.07:1 sobre --surface */
+
+  --near-fill:    #fdf0d5;
+  --near-bg:      var(--near-fill);
+  --near-ink:     #6b3d00;   /* 8.11:1 sobre --near-fill */
+  --near-line:    #8a5200;   /* 6.39:1 sobre --surface */
+
+  --no-fill:      #eef0f4;
+  --no-ink:       #454d5a;   /* 7.48:1 sobre --no-fill */
+  --no-line:      #6b7280;   /* 4.83:1 sobre --surface */
+
+  /* Geometria do sistema de formas. */
+  --bw: 2px;                 /* espessura da borda */
+  --radius: 12px;
+  --radius-pill: 30%;        /* cantos "totalmente arredondados" da casa correta */
+  --chamfer: polygon(0 0, 100% 0, 100% 68%, 68% 100%, 0 100%);
+  --key-h: 2.75rem;          /* 44px a 16px de raiz — WCAG 2.5.5 */
+  --tile-gap: 6px;
+  --max-frame: 420px;
+}
+
+/* Alto contraste: preto/branco, bordas mais grossas, texturas em vez de cor. */
+html[data-contrast="high"]{
+  --paper:      #ffffff;
+  --surface:    #ffffff;
+  --surface-2:  #ffffff;
+  --ink:        #000000;
+  --ink-2:      #1c1c1c;
+  --ink-3:      #1c1c1c;
+  --line:       #000000;
+  --line-soft:  #000000;
+  --brand:      #000000;
+  --brand-ink:  #ffffff;
+  --brand-dark: #000000;
+  --focus:      #000000;
+  --focus-halo: rgba(0,0,0,.30);
+  --ok-fill:    #000000;
+  --ok-ink:     #ffffff;
+  --ok-line:    #000000;
+  --near-fill:  #ffffff;
+  --near-bg:    repeating-linear-gradient(45deg, rgba(0,0,0,.16) 0 2px, #ffffff 2px 8px);
+  --near-ink:   #000000;
+  --near-line:  #000000;
+  --no-fill:    #ffffff;
+  --no-ink:     #333333;
+  --no-line:    #000000;
+  --bw: 3px;
+}
+
+/* Modo sem cor: rampa cinza + textura. A hierarquia de estados é preservada
+   por preenchimento (sólido / hachurado / vazado), não por matiz. */
+html[data-nocolor="on"]{
+  --paper:      #f2f2f2;
+  --surface:    #ffffff;
+  --surface-2:  #ededed;
+  --ink:        #1b1b1b;
+  --ink-2:      #3a3a3a;
+  --ink-3:      #4a4a4a;
+  --line:       #1b1b1b;
+  --line-soft:  #9a9a9a;
+  --brand:      #1b1b1b;
+  --brand-ink:  #ffffff;
+  --brand-dark: #1b1b1b;
+  --focus:      #1b1b1b;
+  --focus-halo: rgba(0,0,0,.25);
+  --ok-fill:    #1b1b1b;
+  --ok-ink:     #ffffff;
+  --ok-line:    #1b1b1b;
+  --near-fill:  #e6e6e6;
+  --near-bg:    repeating-linear-gradient(45deg, rgba(0,0,0,.22) 0 2px, #e6e6e6 2px 8px);
+  --near-ink:   #111111;
+  --near-line:  #1b1b1b;
+  --no-fill:    #fafafa;
+  --no-ink:     #595959;
+  --no-line:    #6b6b6b;
+}
+
+/* Escala tipográfica. Alterar a raiz de `rem` reflowa TODO o layout,
+   porque nada de dimensionamento usa px fixo. */
+html[data-fs="md"]{ font-size: 100%; }
+html[data-fs="lg"]{ font-size: 112.5%; }
+html[data-fs="xl"]{ font-size: 125%; }
+
+/* ============================================================================
+   2. RESET
+   ========================================================================== */
+*, *::before, *::after{ box-sizing: border-box; }
+[hidden]{ display: none !important; }
+html{ -webkit-text-size-adjust: 100%; }
+body{
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink);
+  background-color: var(--paper);
+  /* Textura de papel apenas com gradientes — nenhuma imagem externa. */
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(11,82,196,.07), transparent 42%),
+    radial-gradient(circle at 82% 78%, rgba(20,102,58,.06), transparent 46%);
+  min-height: 100dvh;
+  overflow-x: hidden; /* rede de segurança; o layout não deve precisar disso */
+}
+img, svg{ max-width: 100%; }
+button, input, select{ font: inherit; color: inherit; }
+
+/* Foco: grosso, com offset e halo. NUNCA removido (WCAG 2.4.7 / 2.4.11).
+   O anel aparece também no foco por mouse (`:focus`, e não só
+   `:focus-visible`): para quem tem baixa visão, o indicador de foco não pode
+   depender de como o foco chegou ali — e `:focus-visible` não é aplicado em
+   alguns navegadores quando o foco vem de um script. */
+:focus,
+:focus-visible{
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--focus-halo);
+  border-radius: 4px;
+}
+.sr-only{
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+.skip-link{
+  position: absolute; left: 8px; top: -100px; z-index: 100;
+  background: var(--ink); color: var(--surface);
+  padding: .75rem 1rem; border-radius: 0 0 var(--radius) var(--radius);
+  font-weight: 700; text-decoration: none; transition: top .15s ease;
+}
+.skip-link:focus{ top: 0; }
+
+/* ============================================================================
+   3. CHROME DO PROTÓTIPO (fora do "celular")
+   ========================================================================== */
+.chrome{
+  max-width: 1100px; margin-inline: auto; padding: 14px 12px 0;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+  justify-content: space-between;
+}
+.chrome__title{ margin: 0; font-size: 1.05rem; letter-spacing: -.01em; }
+.chrome__title span{ display:block; font-size:.8rem; font-weight:500; color: var(--ink-2); }
+.tabs{
+  display: flex; flex-wrap: wrap; gap: 6px; background: var(--surface);
+  padding: 6px; border-radius: 999px; border: var(--bw) solid var(--line);
+}
+.tab{
+  border: 0; background: transparent; color: var(--ink);
+  padding: .5rem .85rem; min-height: 44px; border-radius: 999px;
+  font-weight: 650; cursor: pointer;
+}
+.tab[aria-selected="true"]{ background: var(--ink); color: var(--surface); }
+.tab:hover{ background: var(--surface-2); }
+.tab[aria-selected="true"]:hover{ background: var(--ink); }
+.chrome__note{
+  margin: 0; flex-basis: 100%; font-size: .78rem; color: var(--ink-2);
+}
+
+/* ============================================================================
+   4. PALCO / FRAME DO CELULAR
+   Escolha documentada: em telas >= 481px o app é centralizado num frame de
+   420px simulando um celular; abaixo disso o frame ocupa 100% da largura.
+   ========================================================================== */
+.stage{
+  max-width: 1100px; margin-inline: auto; padding: 12px;
+  display: grid; gap: 16px; grid-template-columns: 1fr;
+}
+@media (min-width: 1024px){
+  .stage{ grid-template-columns: minmax(0, 420px) minmax(0, 1fr); align-items: start; }
+}
+.phone{
+  width: 100%; max-width: var(--max-frame); margin-inline: auto;
+  background: var(--surface); border: var(--bw) solid var(--line);
+  border-radius: 22px; overflow: hidden; position: relative;
+}
+@media (max-width: 480px){
+  .phone{ border-radius: 0; border-left: 0; border-right: 0; }
+}
+.app{ display: flex; flex-direction: column; min-height: 0; }
+@media (min-width: 481px){
+  .phone{ height: min(780px, calc(100dvh - 150px)); display: flex; }
+  .app{ width: 100%; }
+}
+.app__body{
+  padding: 0; background: var(--surface);
+}
+@media (min-width: 481px){
+  .app__body{ flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; }
+}
+
+/* ============================================================================
+   5. BARRA DO APP
+   ========================================================================== */
+.app-bar{
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: .6rem .8rem; border-bottom: var(--bw) solid var(--line);
+  background: var(--surface); position: sticky; top: 0; z-index: 5;
+}
+.app-bar__brand{ display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.app-bar__logo{ width: 24px; height: 24px; flex: none; color: var(--brand); }
+.app-bar__name{ font-weight: 800; letter-spacing: -.02em; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-bar__actions{ display: flex; align-items: center; gap: .3rem; flex: none; }
+.lang{ display: flex; border: var(--bw) solid var(--line); border-radius: 999px; overflow: hidden; }
+.lang__btn{
+  border: 0; background: var(--surface); color: var(--ink);
+  min-height: 44px; min-width: 38px; padding: 0 .35rem; font-weight: 700; cursor: pointer; font-size: .9rem;
+}
+@media (min-width: 360px){
+  .app-bar__name{ font-size: .95rem; }
+  .lang__btn{ min-width: 40px; }
+}
+.lang__btn[aria-pressed="true"]{ background: var(--ink); color: var(--surface); }
+.icon-btn{
+  display: inline-grid; place-items: center; width: 44px; height: 44px;
+  border: var(--bw) solid var(--line); border-radius: 12px; background: var(--surface);
+  color: var(--ink); cursor: pointer;
+}
+.icon-btn svg{ width: 22px; height: 22px; }
+.icon-btn:hover{ background: var(--surface-2); }
+
+/* ============================================================================
+   6. PAINEL DE PREFERÊNCIAS
+   ========================================================================== */
+.prefs{
+  border-bottom: var(--bw) solid var(--line); background: var(--surface-2);
+  padding: .8rem; display: grid; gap: .8rem;
+}
+.prefs h2{ margin: 0; font-size: .95rem; }
+.prefs fieldset{ border: var(--bw) solid var(--line); border-radius: 12px; margin: 0; padding: .6rem .7rem .7rem; background: var(--surface); }
+.prefs legend{ font-weight: 700; font-size: .82rem; padding: 0 .3rem; }
+.seg{ display: flex; gap: 6px; flex-wrap: wrap; }
+.seg label{ position: relative; flex: 1 1 90px; }
+.seg input{ position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg span{
+  display: grid; place-items: center; min-height: 44px; border-radius: 10px;
+  border: var(--bw) solid var(--line); background: var(--surface); font-weight: 700; cursor: pointer;
+}
+.seg input:checked + span{ background: var(--ink); color: var(--surface); border-color: var(--ink); }
+/* O radio real é visualmente escondido (1px, opacidade 0) — o anel de foco
+   precisa ser desenhado no rótulo visível ao lado dele. */
+.seg input:focus + span{ outline: 3px solid var(--focus); outline-offset: 2px; }
+.seg .fs-md{ font-size: .9rem } .seg .fs-lg{ font-size: 1.15rem } .seg .fs-xl{ font-size: 1.4rem }
+.switches{ display: grid; gap: .35rem; }
+.switch{ display: flex; gap: .6rem; align-items: flex-start; min-height: 44px; padding: .3rem 0; cursor: pointer; }
+.switch input{ width: 24px; height: 24px; accent-color: var(--brand); flex: none; margin-top: .1rem; }
+.switch__text{ font-size: .88rem; }
+.switch__text b{ display: block; }
+
+/* ============================================================================
+   7. COMPONENTES DE TELA
+   ========================================================================== */
+.screen{ padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.screen h2{ margin: 0; font-size: 1.05rem; }
+.card{
+  background: var(--surface); border: var(--bw) solid var(--line);
+  border-radius: var(--radius); padding: .85rem;
+}
+.hint{ margin: 0; font-size: .82rem; color: var(--ink-2); }
+.card--soft{ background: var(--surface-2); }
+
+/* Botões: alvos de toque >= 44px, foco sempre visível. */
+.btn{
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+  min-height: 48px; padding: .6rem 1.1rem; border-radius: 14px; cursor: pointer;
+  border: var(--bw) solid var(--ink); background: var(--surface); color: var(--ink);
+  font-weight: 700; text-decoration: none; text-align: center;
+}
+.btn--primary{ background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.btn--primary:hover{ background: var(--brand-dark); border-color: var(--brand-dark); }
+.btn--ghost{ background: var(--surface); }
+.btn--ghost:hover{ background: var(--surface-2); }
+.btn--block{ width: 100%; }
+.btn-row{ display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-row .btn{ flex: 1 1 140px; }
+
+.hero{ text-align: center; padding: .5rem 0 .2rem; }
+.hero__eyebrow{ margin: 0; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.hero__title{ margin: .1rem 0 .2rem; font-size: 2rem; letter-spacing: -.03em; }
+.hero__date{ margin: 0; color: var(--ink-2); font-size: .9rem; }
+.hero__tagline{ margin: .3rem 0 0; color: var(--ink-2); font-size: .85rem; font-style: italic; }
+
+.theme-card{ display: flex; gap: .9rem; align-items: center; }
+.theme-card__icon{
+  width: 54px; height: 54px; flex: none; display: grid; place-items: center;
+  font-size: 1.7rem; background: var(--surface-2); border: var(--bw) solid var(--line); border-radius: 14px;
+}
+.theme-card__label{ margin: 0; font-size: .75rem; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-2); font-weight: 700; }
+.theme-card__name{ margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; }
+.theme-card__len{ margin: 0; color: var(--ink-2); font-size: .9rem; }
+
+.pill{
+  display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem;
+  border-radius: 999px; border: var(--bw) solid var(--line); background: var(--surface-2);
+  font-size: .8rem; font-weight: 700;
+}
+.pill--mode{ background: var(--ink); color: var(--surface); border-color: var(--ink); }
+
+.chips{ display: flex; gap: 8px; flex-wrap: wrap; }
+.chip{
+  flex: 1 1 92px; display: grid; gap: .05rem; justify-items: start;
+  border: var(--bw) solid var(--line); background: var(--surface); border-radius: 12px;
+  padding: .5rem .6rem; min-height: 60px; cursor: pointer; text-align: left; color: var(--ink);
+}
+.chip:hover{ background: var(--surface-2); }
+.chip__k{ font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); font-weight: 700; }
+.chip__v{ font-size: 1.2rem; font-weight: 800; }
+
+details.card > summary{
+  cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; gap: .4rem;
+}
+details.card > summary::marker{ color: var(--ink-2); }
+details.card[open] > summary{ margin-bottom: .5rem; }
+
+/* ============================================================================
+   8. SISTEMA DE FORMAS — o coração do Conceito B
+   Cada estado é uma SILHUETA diferente, legível em escala de cinza:
+     correct -> cantos totalmente arredondados (raio 30%) + ✓
+     present -> um canto chanfrado (recorte diagonal) + ↑
+     absent  -> contorno tracejado vazado + ✗
+   ========================================================================== */
+.tile{
+  position: relative; aspect-ratio: 1; display: grid; place-items: center;
+  border: var(--bw) solid var(--line); border-radius: 14%;
+  background: var(--surface); color: var(--ink);
+  font-weight: 800; isolation: isolate;
+}
+.tile__letter{ font-size: clamp(1rem, 1.15rem + 1.2vw, 1.5rem); line-height: 1; z-index: 2; }
+.tile__mark{
+  position: absolute; top: .12rem; right: .18rem; z-index: 3;
+  font-size: .72rem; line-height: 1; font-weight: 700;
+}
+/* Vazio: contorno pontilhado e sem preenchimento. O tracejado (dash) é
+   reservado para o estado "ausente" — a diferença de padrão de linha também
+   é um canal de informação, não só a diferença de cor. */
+.tile[data-state="empty"]{ background: transparent; border-color: var(--line-soft); border-style: dotted; }
+.tile[data-state="filled"]{ border-color: var(--ink-3); border-style: solid; }
+
+/* (a) Correta na posição: bloco sólido de cantos muito arredondados. */
+.tile[data-state="correct"]{
+  background: var(--ok-fill); color: var(--ok-ink); border-color: var(--ok-line);
+  border-radius: var(--radius-pill);
+}
+.tile[data-state="correct"] .tile__mark{ color: var(--ok-ink); }
+
+/* (b) Presente em outra posição: canto chanfrado. A silhueta é o recorte —
+    a borda diagonal é desenhada por duas camadas com clip-path.
+    `border: 0` para que o recorte ocupe exatamente a caixa da tile, igual às
+    outras duas formas (silhuetas do mesmo tamanho = comparação justa). */
+.tile[data-state="present"]{ background: transparent; border: 0; }
+.tile[data-state="present"]::before,
+.tile[data-state="present"]::after{
+  content: ""; position: absolute; inset: 0; clip-path: var(--chamfer);
+}
+.tile[data-state="present"]::before{ background: var(--near-line); z-index: 0; }
+.tile[data-state="present"]::after{ inset: var(--bw); background: var(--near-bg); z-index: 1; }
+.tile[data-state="present"] .tile__letter{ color: var(--near-ink); }
+.tile[data-state="present"] .tile__mark{ color: var(--near-ink); }
+
+/* (c) Ausente: contorno tracejado vazado. */
+.tile[data-state="absent"]{
+  background: var(--no-fill); color: var(--no-ink);
+  border-color: var(--no-line); border-style: dashed; border-radius: 14%;
+}
+.tile[data-state="absent"] .tile__mark{ color: var(--no-ink); }
+
+/* Variantes de tamanho (legenda, grid de compartilhamento). */
+.tile--mini{ width: 36px; height: 36px; aspect-ratio: auto; flex: none; }
+.tile--tiny{ width: 20px; height: 20px; aspect-ratio: auto; flex: none; }
+.tile--mini .tile__letter, .tile--tiny .tile__letter{ font-size: 0; }
+.tile--tiny .tile__mark{ font-size: .6rem; top: .05rem; right: .1rem; }
+
+/* Legenda: sempre visível, forma + palavra (WCAG 1.3.1 / 3.2.4). */
+.legend{ list-style: none; display: flex; flex-wrap: wrap; gap: .5rem .9rem; margin: 0; padding: 0; }
+.legend li{ display: flex; align-items: center; gap: .4rem; font-size: .8rem; font-weight: 650; }
+.legend__text{ color: var(--ink); }
+.legend--lg li{ font-size: .95rem; }
+
+/* ============================================================================
+   9. TELA DE PARTIDA
+   ========================================================================== */
+.game-head{ display: grid; gap: .5rem; }
+.game-head__row{ display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.game-status{ margin: 0; font-weight: 700; }
+.feedback{
+  margin: 0; padding: .6rem .7rem; border-radius: 12px;
+  border: var(--bw) solid var(--line); background: var(--surface-2);
+  font-size: .88rem; min-height: 44px; display: flex; align-items: center;
+}
+.feedback--error{ border-color: var(--ink); background: var(--surface); font-weight: 700; }
+.grid-wrap{ display: flex; justify-content: center; }
+.grid{ display: flex; flex-direction: column; gap: var(--tile-gap); width: 100%; max-width: 340px; }
+.grid__row{ display: grid; grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr)); gap: var(--tile-gap); }
+
+/* ============================================================================
+   10. TECLADO
+   Altura mínima 44px sempre. A largura acompanha a fileira: 10 teclas × 44px
+   não cabem em 320px de viewport (ver notas de acessibilidade).
+   ========================================================================== */
+.keyboard-wrap{ position: sticky; bottom: 0; z-index: 3; background: var(--surface); padding: .5rem 0 .2rem; }
+.keyboard{ display: flex; flex-direction: column; gap: 5px; }
+.kb-row{ display: flex; gap: 4px; justify-content: center; }
+.key{
+  position: relative; flex: 1 1 0; min-width: 0; min-height: var(--key-h);
+  display: grid; place-items: center; border-radius: 10px; cursor: pointer;
+  border: var(--bw) solid var(--line); background: var(--surface-2); color: var(--ink);
+  font-weight: 750; font-size: 1rem; padding: 0;
+}
+.key:hover{ background: var(--line-soft); }
+.key--wide{ flex: 1.5 1 0; font-size: .8rem; gap: .3rem; grid-auto-flow: column; }
+.key--enter{ background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.key--enter:hover{ background: var(--brand-dark); }
+.key__mark{ position: absolute; top: .1rem; right: .15rem; font-size: .6rem; line-height: 1; }
+.key[data-state="correct"]{ background: var(--ok-fill); color: var(--ok-ink); border-color: var(--ok-line); }
+.key[data-state="correct"] .key__mark{ color: var(--ok-ink); }
+.key[data-state="present"]{ background: transparent; border: 0; }
+.key[data-state="present"]::before,
+.key[data-state="present"]::after{ content: ""; position: absolute; inset: 0; clip-path: var(--chamfer); }
+.key[data-state="present"]::before{ background: var(--near-line); z-index: 0; }
+.key[data-state="present"]::after{ inset: var(--bw); background: var(--near-bg); z-index: 1; }
+.key[data-state="present"] .key__label{ color: var(--near-ink); position: relative; z-index: 2; }
+.key[data-state="present"] .key__mark{ color: var(--near-ink); z-index: 2; }
+.key[data-state="absent"]{ background: var(--no-fill); color: var(--no-ink); border-color: var(--no-line); border-style: dashed; }
+.key[data-state="absent"] .key__mark{ color: var(--no-ink); }
+.key[aria-disabled="true"]{ cursor: not-allowed; opacity: .85; }
+.key__label{ position: relative; z-index: 2; }
+.key[data-flash="true"]{ transform: translateY(1px); background: var(--line-soft); }
+
+/* ============================================================================
+   11. TELA DE RESULTADO
+   ========================================================================== */
+.result{ text-align: center; display: grid; gap: .3rem; justify-items: center; }
+.result__icon{
+  width: 68px; height: 68px; display: grid; place-items: center; border-radius: 50%;
+  border: var(--bw) solid var(--ok-line); background: var(--ok-fill); color: var(--ok-ink);
+  font-size: 2rem; font-weight: 800;
+}
+.result--lost .result__icon{ background: var(--surface); color: var(--ink); border-color: var(--ink); border-style: dashed; }
+.result__title{ margin: .2rem 0 0; font-size: 1.5rem; letter-spacing: -.02em; }
+.result__word{ margin: 0; font-size: 1.7rem; font-weight: 800; letter-spacing: .06em; }
+.result__meta{ margin: 0; color: var(--ink-2); font-size: .9rem; }
+.result__note{
+  margin: .2rem 0 0; font-size: .82rem; background: var(--surface-2);
+  border: var(--bw) solid var(--line); border-radius: 10px; padding: .35rem .6rem;
+}
+.share-grid{ display: grid; gap: 4px; justify-content: start; }
+.share-grid__row{ display: flex; gap: 4px; }
+.share-text{
+  margin: 0; padding: .6rem; border-radius: 12px; background: var(--surface-2);
+  border: var(--bw) solid var(--line); font-size: .82rem; white-space: pre-wrap;
+  overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ============================================================================
+   12. TELA DE ESTATÍSTICAS
+   ========================================================================== */
+.stats-grid{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.stat{ border: var(--bw) solid var(--line); border-radius: 12px; padding: .7rem; background: var(--surface); }
+.stat__k{ margin: 0; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); font-weight: 700; }
+.stat__v{ margin: .1rem 0 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
+.dist{ list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.dist li{ display: flex; align-items: center; gap: .5rem; font-size: .85rem; }
+.dist__bar{ flex: 1 1 auto; height: 22px; border-radius: 6px; border: var(--bw) solid var(--line); background: var(--surface-2); overflow: hidden; }
+.dist__fill{ height: 100%; background: var(--ok-fill); }
+.dist__n{ width: 2ch; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+/* ============================================================================
+   13. COLUNA LATERAL (legenda do sistema, notas, paleta)
+   ========================================================================== */
+.side{ display: grid; gap: 12px; align-content: start; }
+.side h2{ margin: 0 0 .3rem; font-size: 1rem; }
+.side p{ margin: 0 0 .5rem; font-size: .88rem; color: var(--ink-2); }
+.notes__body{ font-size: .87rem; }
+.notes__body h3{ font-size: .9rem; margin: .8rem 0 .2rem; }
+.notes__body ul{ margin: 0; padding-left: 1.1rem; }
+.notes__body li{ margin-bottom: .35rem; }
+.notes__body code{ background: var(--surface-2); padding: .05rem .3rem; border-radius: 5px; font-size: .85em; }
+.swatches{ display: grid; gap: 6px; }
+.swatch{ display: flex; align-items: center; gap: .5rem; font-size: .8rem; }
+.swatch__box{ width: 34px; height: 24px; border-radius: 6px; border: var(--bw) solid var(--line); flex: none; }
+.swatch__ratio{ margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+/* ============================================================================
+   14. ANIMAÇÕES
+   ========================================================================== */
+/* Estados iniciais e finais de ambas as animações são visualmente EQUIVALENTES
+   ao estado normal do elemento. Assim, se a animação for interrompida (aba em
+   segundo plano, `prefers-reduced-motion`, renderizador sem suporte), o
+   elemento nunca fica invisível ou torto — ele apenas não anima. */
+@keyframes tile-flip{
+  from{ transform: rotateX(0deg); }
+  to  { transform: rotateX(360deg); }
+}
+.tile--reveal{ animation: tile-flip .42s cubic-bezier(.2,.7,.3,1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+@keyframes pop-in{
+  0%{ transform: scale(.85); }
+  60%{ transform: scale(1.08); }
+  100%{ transform: scale(1); }
+}
+.result__icon{ animation: pop-in .45s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes shake{
+  0%,100%{ transform: translateX(0) } 25%{ transform: translateX(-4px) } 75%{ transform: translateX(4px) }
+}
+.feedback--error{ animation: shake .3s ease both; }
+.grid{ perspective: 700px; }
+
+/* Preferência do sistema: reduz SEMPRE. A opção do usuário só soma. */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important; scroll-behavior: auto !important;
+  }
+}
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after{
+  animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+  transition-duration: .001ms !important; scroll-behavior: auto !important;
+}
+</style>
+</head>
+
+<body>
+<a class="skip-link" href="#app" id="skipLink">Pular para o jogo</a>
+
+<!-- ===================== CHROME DO PROTÓTIPO ===================== -->
+<header class="chrome">
+  <h1 class="chrome__title">
+    cacaPalavras — Conceito B
+    <span>Shape-first: o jogo funciona em escala de cinza, sem depender de cor</span>
+  </h1>
+  <div class="tabs" role="tablist" aria-label="Telas do protótipo" id="tablist">
+    <button type="button" role="tab" class="tab" id="tab-home" aria-controls="screen-home" aria-selected="true" tabindex="0" data-screen="home">Início</button>
+    <button type="button" role="tab" class="tab" id="tab-game" aria-controls="screen-game" aria-selected="false" tabindex="-1" data-screen="game">Partida</button>
+    <button type="button" role="tab" class="tab" id="tab-result" aria-controls="screen-result" aria-selected="false" tabindex="-1" data-screen="result">Resultado</button>
+    <button type="button" role="tab" class="tab" id="tab-stats" aria-controls="screen-stats" aria-selected="false" tabindex="-1" data-screen="stats">Estatísticas</button>
+  </div>
+  <p class="chrome__note" id="chromeNote">
+    Navegação de demonstração: as abas acima pulam entre as telas do app (a seta ←/→ também funciona). Em telas ≥ 481px o app fica num frame de 420px simulando um celular; abaixo disso o frame ocupa 100% da largura.
+  </p>
+</header>
+
+<main class="stage">
+  <!-- ===================== APP ===================== -->
+  <section class="phone" id="app" tabindex="-1" aria-label="Aplicativo cacaPalavras">
+    <div class="app">
+      <!-- Barra do app -->
+      <header class="app-bar">
+        <div class="app-bar__brand">
+          <svg class="app-bar__logo" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <!-- O logo É o sistema de formas: quadrado arredondado / chanfrado / tracejado. -->
+            <rect x="1" y="1" width="14" height="14" rx="4.5" fill="currentColor"/>
+            <path d="M18 1h13v8l-5 5H18z" fill="currentColor" opacity=".55"/>
+            <rect x="1" y="18" width="14" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-dasharray="4 3"/>
+          </svg>
+          <span class="app-bar__name">cacaPalavras</span>
+        </div>
+        <div class="app-bar__actions">
+          <div class="lang" role="group" aria-label="Idioma / Language" id="langSwitch">
+            <button type="button" class="lang__btn" data-set-lang="pt" aria-pressed="true" aria-label="Português (Brasil)">PT</button>
+            <button type="button" class="lang__btn" data-set-lang="en" aria-pressed="false" aria-label="English">EN</button>
+          </div>
+          <button type="button" class="icon-btn" id="prefsBtn" aria-expanded="false" aria-controls="prefsPanel">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M3 6h8M15 6h6M3 12h3M10 12h11M3 18h11M18 18h3"/>
+              <circle cx="13" cy="6" r="2.4" fill="var(--surface)" stroke="currentColor" stroke-width="2"/>
+              <circle cx="8" cy="12" r="2.4" fill="var(--surface)" stroke="currentColor" stroke-width="2"/>
+              <circle cx="16" cy="18" r="2.4" fill="var(--surface)" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span class="sr-only">Preferências de acessibilidade</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Painel de preferências (recolhível; abrir pelo botão da barra) -->
+      <div class="prefs" id="prefsPanel" hidden>
+        <h2 id="prefsTitle">Preferências de acessibilidade</h2>
+        <fieldset>
+          <legend id="fsLegend">Tamanho do texto</legend>
+          <div class="seg">
+            <label><input type="radio" name="fs" value="md" checked><span class="fs-md">A</span></label>
+            <label><input type="radio" name="fs" value="lg"><span class="fs-lg">A+</span></label>
+            <label><input type="radio" name="fs" value="xl"><span class="fs-xl">A++</span></label>
+          </div>
+          <p class="hint" id="fsHint" style="margin-top:.4rem">Altera a escala tipográfica real do app (tudo é construído em rem).</p>
+        </fieldset>
+        <fieldset>
+          <legend id="swLegend">Opções</legend>
+          <div class="switches">
+            <label class="switch"><input type="checkbox" id="optContrast"><span class="switch__text"><b id="optContrastL">Alto contraste</b><span id="optContrastD">Preto e branco, bordas mais grossas, texturas em vez de cor.</span></span></label>
+            <label class="switch"><input type="checkbox" id="optNoColor"><span class="switch__text"><b id="optNoColorL">Modo sem cor (daltônico)</b><span id="optNoColorD">Rampa cinza + hachura. O jogo continua legível em P&amp;B.</span></span></label>
+            <label class="switch"><input type="checkbox" id="optMotion"><span class="switch__text"><b id="optMotionL">Reduzir animações</b><span id="optMotionD">Desliga flips e Entradas. A preferência do sistema já é respeitada.</span></span></label>
+            <label class="switch"><input type="checkbox" id="optVoice" checked><span class="switch__text"><b id="optVoiceL">Anunciar feedback por voz</b><span id="optVoiceD">Região aria-live anuncia o resultado de cada tentativa.</span></span></label>
+          </div>
+        </fieldset>
+      </div>
+
+      <!-- ===================== TELAS ===================== -->
+      <div class="app__body">
+
+        <!-- ---------- 1. INICIAL ---------- -->
+        <section class="screen" id="screen-home" role="tabpanel" aria-labelledby="tab-home" tabindex="-1">
+          <div class="hero">
+            <p class="hero__eyebrow" id="homeEyebrow">Palavra do dia</p>
+            <h2 class="hero__title" id="homeTitle">cacaPalavras</h2>
+            <p class="hero__date" id="homeDate"></p>
+            <p class="hero__tagline" id="homeTagline"></p>
+          </div>
+
+          <div class="card theme-card">
+            <div class="theme-card__icon" id="homeIcon" aria-hidden="true">🐾</div>
+            <div>
+              <p class="theme-card__label" id="homeThemeLabel">Tema de hoje</p>
+              <p class="theme-card__name" id="homeThemeName">Animais</p>
+              <p class="theme-card__len" id="homeThemeLen">5 letras</p>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button type="button" class="btn btn--primary btn--block" id="playBtn">Jogar</button>
+            <button type="button" class="btn btn--ghost btn--block" id="trainBtn">Modo treino</button>
+          </div>
+          <p class="hint" id="trainHint">O modo treino não gasta o jogo do dia nem quebra sua sequência.</p>
+
+          <div class="chips" id="homeChips">
+            <button type="button" class="chip" data-go="stats">
+              <span class="chip__k" id="chipStreakK">Sequência</span>
+              <span class="chip__v" id="chipStreak">0</span>
+            </button>
+            <button type="button" class="chip" data-go="stats">
+              <span class="chip__k" id="chipWinsK">Vitórias</span>
+              <span class="chip__v" id="chipWins">0</span>
+            </button>
+            <button type="button" class="chip" data-go="stats">
+              <span class="chip__k" id="chipRateK">% de acerto</span>
+              <span class="chip__v" id="chipRate">0%</span>
+            </button>
+          </div>
+
+          <details class="card" id="themeDemoBox">
+            <summary id="themeDemoSummary">Tema do dia — demonstração</summary>
+            <p class="hint" id="themeDemoHint">Escolha um tema para ver os quatro. Trocar o tema reinicia a partida de demonstração.</p>
+            <fieldset class="seg" style="border:0;padding:0;margin:.4rem 0 0">
+              <legend class="sr-only" id="themeDemoLegend">Escolher tema de demonstração</legend>
+              <div id="themeRadios" style="display:grid;gap:6px"></div>
+            </fieldset>
+          </details>
+
+          <details class="card">
+            <summary id="rulesSummary">Como jogar</summary>
+            <p class="hint" id="rulesBody"></p>
+          </details>
+        </section>
+
+        <!-- ---------- 2. PARTIDA ---------- -->
+        <section class="screen" id="screen-game" role="tabpanel" aria-labelledby="tab-game" tabindex="-1" hidden>
+          <div class="game-head">
+            <div class="game-head__row">
+              <span class="pill" id="gameThemePill">🐾 Animais · 5 letras</span>
+              <span class="pill pill--mode" id="gameModePill" hidden>Modo treino</span>
+            </div>
+            <p class="game-status" id="gameStatus">Tentativa 1 de 7</p>
+          </div>
+
+          <!-- Legenda sempre visível: forma + símbolo + palavra. -->
+          <ul class="legend" id="gameLegend" aria-label="Legenda dos estados de feedback">
+            <li><span class="tile tile--mini" data-state="correct" aria-hidden="true"><span class="tile__mark">✓</span></span><span class="legend__text" data-legend="correct">Na posição</span></li>
+            <li><span class="tile tile--mini" data-state="present" aria-hidden="true"><span class="tile__mark">↑</span></span><span class="legend__text" data-legend="present">Fora da posição</span></li>
+            <li><span class="tile tile--mini" data-state="absent" aria-hidden="true"><span class="tile__mark">✗</span></span><span class="legend__text" data-legend="absent">Não existe</span></li>
+          </ul>
+
+          <div class="grid-wrap">
+            <div class="grid" id="grid" role="list" aria-label="Grade de tentativas"></div>
+          </div>
+
+          <p class="feedback" id="feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+          <p class="feedback feedback--error" id="feedbackError" role="alert" hidden></p>
+
+          <div class="keyboard-wrap">
+            <div class="keyboard" id="keyboard" role="group" aria-label="Teclado virtual"></div>
+          </div>
+          <p class="hint" id="kbHint">Digite com o teclado físico: letras, Backspace apaga, Enter envia.</p>
+        </section>
+
+        <!-- ---------- 3. RESULTADO ---------- -->
+        <section class="screen" id="screen-result" role="tabpanel" aria-labelledby="tab-result" tabindex="-1" hidden>
+          <div class="result" id="resultBox">
+            <div class="result__icon" id="resultIcon" aria-hidden="true">✓</div>
+            <h2 class="result__title" id="resultTitle">Você acertou!</h2>
+            <p class="result__word" id="resultWord">—</p>
+            <p class="result__meta" id="resultMeta"></p>
+            <p class="result__note" id="resultNote" hidden></p>
+          </div>
+
+          <section class="card" aria-labelledby="shareTitle">
+            <h2 id="shareTitle">Compartilhar resultado</h2>
+            <p class="hint" id="shareHint">O padrão abaixo não revela a palavra.</p>
+            <div class="share-grid" id="shareGrid" role="img" aria-label="Padrão das tentativas"></div>
+            <div class="btn-row" style="margin-top:.6rem">
+              <button type="button" class="btn btn--primary" id="copyBtn">Copiar</button>
+              <button type="button" class="btn btn--ghost" id="copySelectBtn">Copiar texto</button>
+            </div>
+            <p class="hint" id="copyStatus" role="status" aria-live="polite" style="margin-top:.4rem"></p>
+            <pre class="share-text" id="shareText" tabindex="0" aria-label="Texto para compartilhar"></pre>
+          </section>
+
+          <div class="btn-row">
+            <button type="button" class="btn btn--primary" id="resultHomeBtn">Voltar ao início</button>
+            <button type="button" class="btn btn--ghost" id="resultStatsBtn">Estatísticas</button>
+          </div>
+        </section>
+
+        <!-- ---------- 4. ESTATÍSTICAS ---------- -->
+        <section class="screen" id="screen-stats" role="tabpanel" aria-labelledby="tab-stats" tabindex="-1" hidden>
+          <div class="stats-grid">
+            <div class="stat"><p class="stat__k" id="stStreakK">Sequência atual</p><p class="stat__v" id="stStreak">0</p></div>
+            <div class="stat"><p class="stat__k" id="stBestK">Melhor sequência</p><p class="stat__v" id="stBest">0</p></div>
+            <div class="stat"><p class="stat__k" id="stWinsK">Vitórias</p><p class="stat__v" id="stWins">0</p></div>
+            <div class="stat"><p class="stat__k" id="stGamesK">Partidas</p><p class="stat__v" id="stGames">0</p></div>
+            <div class="stat"><p class="stat__k" id="stRateK">% de acerto</p><p class="stat__v" id="stRate">0%</p></div>
+            <div class="stat"><p class="stat__k" id="stLastK">Última palavra</p><p class="stat__v" id="stLast" style="font-size:1.15rem">—</p></div>
+          </div>
+
+          <section class="card" aria-labelledby="distTitle">
+            <h2 id="distTitle">Distribuição de tentativas</h2>
+            <ul class="dist" id="distList"></ul>
+          </section>
+
+          <div class="btn-row">
+            <button type="button" class="btn btn--ghost" id="resetStatsBtn">Reiniciar dados de demonstração</button>
+          </div>
+          <p class="hint">Os dados ficam só neste navegador (localStorage). O modo treino nunca altera estes números.</p>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== COLUNA LATERAL ===================== -->
+  <aside class="side">
+    <section class="card" aria-labelledby="legendH">
+      <h2 id="legendH">Sistema de formas</h2>
+      <p>Cada estado de feedback tem uma <b>silhueta própria</b>. Em preto e branco, em escala de cinza ou para quem não distingue verde de amarelo, o jogo continua legível.</p>
+      <ul class="legend legend--lg">
+        <li><span class="tile tile--mini" data-state="correct" aria-hidden="true"><span class="tile__mark">✓</span></span><span class="legend__text">Cantos arredondados + ✓</span></li>
+        <li><span class="tile tile--mini" data-state="present" aria-hidden="true"><span class="tile__mark">↑</span></span><span class="legend__text">Canto chanfrado + ↑</span></li>
+        <li><span class="tile tile--mini" data-state="absent" aria-hidden="true"><span class="tile__mark">✗</span></span><span class="legend__text">Tracejado vazado + ✗</span></li>
+      </ul>
+    </section>
+
+    <details class="card" id="notes">
+      <summary>Notas de acessibilidade (WCAG 2.1 AA)</summary>
+      <div class="notes__body">
+        <h3>Como cada critério foi atendido</h3>
+        <ul>
+          <li><b>1.4.1 Uso de cor</b> — a cor nunca é o único sinal: cada estado tem forma distinta (arredondado / chanfrado / tracejado), símbolo (✓ ↑ ✗) e <code>aria-label</code>. O modo sem cor é uma skin completa, não um filtro.</li>
+          <li><b>1.4.3 Contraste mínimo</b> — texto ≥ 4.5:1 e componentes/bordas ≥ 3:1 em todos os estados (valores medidos na seção "Paleta"). O alto contraste sobe para 21:1.</li>
+          <li><b>1.4.4 Redimensionar texto</b> — A/A+/A++ alteram a raiz de <code>rem</code>; nada é dimensionado em px fixo, então o layout reflowa de verdade.</li>
+          <li><b>1.4.10 Reflow</b> — sem scroll horizontal em 320px, 375px, 768px e 1280px; o teclado rola dentro do próprio contêiner quando o texto cresce.</li>
+          <li><b>1.4.11 Contraste não textual</b> — bordas, foco e ícones com ≥ 3:1 contra o fundo adjacente.</li>
+          <li><b>1.4.12 Espaçamento de texto</b> — altura de linha 1.5, sem <code>!important</code> de altura fixa em blocos de texto.</li>
+          <li><b>2.1.1 Teclado</b> — toda a interação funciona sem mouse; o teclado físico também digita (letras, Backspace, Enter).</li>
+          <li><b>2.1.2 Sem armadilha de teclado</b> — nenhum componente prende foco; o painel de preferências fecha com Escape e devolve o foco ao botão.</li>
+          <li><b>2.4.1 Blocos para pulo</b> — link "Pular para o jogo" como primeiro elemento focável.</li>
+          <li><b>2.4.3 / 2.4.7 Foco visível</b> — outline de 3px com offset de 2px e halo, presente em todos os elementos interativos; nunca removido.</li>
+          <li><b>2.4.6 Cabeçalhos e rótulos</b> — hierarquia de <code>h1…h3</code> coerente em cada tela e <code>fieldset/legend</code> nos grupos de controle.</li>
+          <li><b>2.5.3 Rótulo no nome</b> — o nome acessível de cada botão contém o texto visível.</li>
+          <li><b>2.5.5 / 2.5.8 Tamanho do alvo</b> — altura de 44px em todos os alvos; a largura acompanha a fileira do teclado (limite físico de 10 teclas em 320px, detalhado abaixo).</li>
+          <li><b>3.1.1 Idioma da página</b> — <code>lang</code> muda entre <code>pt-BR</code> e <code>en</code> junto com o conteúdo.</li>
+          <li><b>3.2.1 Ao receber foco</b> — nenhuma troca de contexto automática; a ativação de aba mantém o foco na aba (padrão APG).</li>
+          <li><b>3.2.2 Ao receber entrada</b> — nenhuma informação muda de contexto ao digitar; a validação só responde no envio.</li>
+          <li><b>3.3.1 / 3.3.2 Erros e instruções</b> — o erro é identificado em texto ("A palavra precisa ter 5 letras"), com destaque visual <i>e</i> anúncio por <code>role="alert"</code>.</li>
+          <li><b>4.1.2 Nome, papel, valor</b> — tiles com <code>role="img"</code> + <code>aria-label</code>; teclado com <code>aria-pressed</code>/estado por tecla; abas com <code>role="tab"</code>.</li>
+          <li><b>4.1.3 Mensagens de status</b> — <code>role="status"</code> anuncia o resultado da tentativa; <code>role="alert"</code> anuncia erros.</li>
+        </ul>
+
+        <h3>Decisões que fogem do padrão</h3>
+        <ul>
+          <li><b>Teclas "usadas" são marcadas, não desabilitadas.</b> Uma letra que já apareceu como "presente" ou "correta" pode ser usada de novo em outra posição — desabilitá-la bloquearia jogadas legítimas. Só letras já provadas ausentes ficam com <code>aria-disabled</code>, e ainda assim permanecem focáveis para que o estado seja perceptível.</li>
+          <li><b>Legenda sempre visível na tela de partida.</b> Custa uma faixa de altura e economiza toda a aprendizado por tento-e-erro.</li>
+          <li><b>Compartilhamento em ■ ▨ □, não em emoji colorido.</b> O texto compartilhado é lido em grupo de WhatsApp, impresso em papel e por gente que não distingue verde de amarelo. A legenda acompanha o grid.</li>
+          <li><b>Paleta medida, não estimada.</b> Todos os pares de cor foram calculados com a fórmula de contraste relativa da WCAG; o resultado aparece na seção ao lado.</li>
+          <li><b>Limite de 44px na largura das teclas é físico, não de design.</b> Uma fileira QWERTY de 10 teclas exige 440px + gaps. A altura é 44px em 100% das larguras; a largura desce até ~26px em 320px, acima do mínimo de 24×24px da WCAG 2.2 (2.5.8, AA). As teclas de largura alternativa (⌫ e Enviar) compensam o resto da fileira.</li>
+        </ul>
+
+        <h3>Como testar o modo sem cor</h3>
+        <ul>
+          <li>Abra o botão de ajustes (ícone de sliders) na barra do app e ligue <b>Modo sem cor (daltônico)</b>.</li>
+          <li>Se ainda preferir testar em papel: <code>Ctrl/Cmd + P</code> e escolha "Sem cor de fundo" — o layout já foi desenhado para sobreviver a isso.</li>
+          <li>Combine com <b>Alto contraste</b> para ver o cenário máximo (preto/branco + hachura).</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary>Paleta e contraste medido</summary>
+      <p>Valores calculados com a fórmula de contraste relativo da WCAG 2.1 ( luminância relativa sRGB ).</p>
+      <div class="swatches" id="swatches"></div>
+    </details>
+
+    <details class="card">
+      <summary>Nota sobre o protótipo</summary>
+      <p>Arquivo único, sem build, sem requisições de rede, sem webfonts e sem imagens externas: só CSS, SVG inline, emoji do sistema e JavaScript puro. A paleta e a lógica de jogo seguem a mesma especificação dos outros conceitos (tema → comprimento → tentativas; acento normalizado na comparação, exibido com acento na resposta).</p>
+    </details>
+  </aside>
+</main>
+
+<script>
+/* ============================================================================
+   LÓGICA DO PROTÓTIPO (JS puro, sem dependências)
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  /* ---------------------------------------------------------------- dados */
+  var THEMES = {
+    pt: {
+      animals: { id: 'animals', name: 'Animais', icon: '🐾', length: 5, words: ['águia','burro','cabra','cacho','camelo','cobra','corvo','dingo','ferao','gazela','hiena','mosca','panda','porco','pulga','tenca','tigre','veado','zebra'] },
+      food:    { id: 'food', name: 'Comida', icon: '🍎', length: 4, words: ['bolo','café','doce','maçã','mama','açaí','caju','atum','erva','sopa','pêra','fubá','suco','nata'] },
+      science: { id: 'science', name: 'Ciência', icon: '🔬', length: 6, words: ['célula','átomos','arvore','teoria','sódio','genoma','física','fóssil','órbita','prisma','plasma'] },
+      sports:  { id: 'sports', name: 'Esportes', icon: '⚽', length: 5, words: ['tênis','golfe','canoa','hóquei','skate','padel','surfe','vôlei','dança','bocha'] }
+    },
+    en: {
+      animals: { id: 'animals', name: 'Animals', icon: '🐾', length: 5, words: ['tiger','zebra','panda','cobra','eagle','otter','llama','moose','rhino','lemur','okapi','shark','tapir','gecko','skunk','camel','horse','whale','crane','bison','quail','raven','shrew','stork','stoat','mouse'] },
+      food:    { id: 'food', name: 'Food', icon: '🍎', length: 4, words: ['cake','pear','tofu','lime','kiwi','corn','plum','soup','bean','taco','herb','rice','wine','pork','beef','eggs','nuts','kale','leek','date','salt'] },
+      science: { id: 'science', name: 'Science', icon: '🔬', length: 6, words: ['genome','theory','plasma','neuron','enzyme','quartz','cobalt','sodium','oxygen','helium','liquid','isomer','vacuum','carbon','magnet','vector','cipher','beaker','energy','matter'] },
+      sports:  { id: 'sports', name: 'Sports', icon: '⚽', length: 5, words: ['rugby','skate','padel','canoe','yacht','vault','relay','boxer','chess','darts','bowls','racer'] }
+    }
+  };
+  var THEME_IDS = ['animals', 'food', 'science', 'sports'];
+
+  /* Rede de segurança: o comprimento da palavra define o número de colunas da
+     grade e o número de tentativas. Filtrar por comprimento garante que as
+     três coisas nunca fiquem dessincronizadas (ex.: "maçã" conta 4). */
+  ['pt', 'en'].forEach(function (lang) {
+    THEME_IDS.forEach(function (id) {
+      var th = THEMES[lang][id];
+      th.words = th.words.filter(function (w) { return w.length === th.length; });
+    });
+  });
+
+  /* Mesma normalização do app real: sem acento, sem cedilha, minúsculas. */
+  function normalize(s) {
+    return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+  /* FNV-1a + mulberry32: mesma seed do app real, para a palavra do dia bater. */
+  function hashString(v) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < v.length; i++) { h ^= v.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return h >>> 0;
+  }
+  function mulberry32(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s = (s + 0x6d2b79f5) >>> 0;
+      var t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function toDateKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function previousDateKey(key) {
+    var p = key.split('-').map(Number);
+    var d = new Date(p[0], p[1] - 1, p[2], 12);
+    d.setDate(d.getDate() - 1);
+    return toDateKey(d);
+  }
+  function dayNumber(key) {
+    var p = key.split('-').map(Number);
+    var utc = Date.UTC(p[0], p[1] - 1, p[2]);
+    var epoch = Date.UTC(2024, 0, 1);
+    return Math.floor((utc - epoch) / 86400000) + 1;
+  }
+  function rawThemeIndex(dateKey, lang) {
+    var rng = mulberry32(hashString(dateKey + '|' + lang + '|theme'));
+    return Math.floor(rng() * THEME_IDS.length);
+  }
+  /* A rotação nunca repete o tema de ontem (mesma regra do app real). */
+  function themeIndexFor(dateKey, lang) {
+    var cur = rawThemeIndex(dateKey, lang);
+    if (cur === rawThemeIndex(previousDateKey(dateKey), lang)) return (cur + 1) % THEME_IDS.length;
+    return cur;
+  }
+  function pickWord(lang, themeId, seedKey) {
+    var pool = THEMES[lang][themeId].words;
+    var rng = mulberry32(hashString(seedKey + '|' + lang + '|' + themeId + '|word'));
+    return pool[Math.floor(rng() * pool.length)];
+  }
+
+  /* --------------------------------------------------------------- textos */
+  var T = {
+    pt: {
+      appName: 'cacaPalavras', tagline: 'A palavra do dia, todo dia.',
+      dayWord: 'Palavra do dia', dayWordEn: 'Palavra do dia nº {n}',
+      play: 'Jogar', training: 'Modo treino',
+      trainingHint: 'O modo treino não gasta o jogo do dia nem quebra sua sequência.',
+      todayTheme: 'Tema de hoje', letters: '{n} letras',
+      attempts: 'Tentativa {n} de {m}', tryLeft: 'Restam {n} tentativas',
+      themeDemo: 'Tema do dia — demonstração',
+      themeDemoHint: 'Escolha um tema para ver os quatro. Trocar o tema reinicia a partida de demonstração.',
+      rules: 'Como jogar',
+      rulesBody: 'Descubra a palavra do tema de hoje. Cada palpite mostra o resultado de cada letra: na posição certa (✓ e cantos arredondados), presente em outra posição (↑ e canto chanfrado) ou ausente na palavra (✗ e contorno tracejado). A palavra pode ter acento — digite sem acento, por exemplo "maca" para "maçã".',
+      legend: 'Legenda dos estados de feedback',
+      legendCorrect: 'Na posição', legendPresent: 'Fora da posição', legendAbsent: 'Não existe',
+      gridLabel: 'Grade de tentativas', row: 'Linha {row}', kbLabel: 'Teclado virtual',
+      keyboardHint: 'Digite com o teclado físico: letras, Backspace apaga, Enter envia.',
+      enter: 'Enviar', backspace: 'Apagar', backspaceAria: 'Apagar letra',
+      send: 'Enviar tentativa', letterAria: 'Letra {letter}',
+      keyStateCorrect: 'na posição', keyStatePresent: 'fora da posição', keyStateAbsent: 'não existe na palavra',
+      emptyGuess: 'Digite uma palavra antes de enviar.',
+      wrongLength: 'A palavra precisa ter {n} letras.',
+      feedbackStart: 'Digite sua primeira tentativa.',
+      rowAnnouncement: 'Linha {row}. {details}',
+      letterCorrect: '{letter} na posição', letterPresent: '{letter} presente fora da posição', letterAbsent: '{letter} não existe',
+      tileCorrect: 'Posição {pos}: {letter}, letra correta na posição',
+      tilePresent: 'Posição {pos}: {letter}, letra presente mas fora da posição',
+      tileAbsent: 'Posição {pos}: {letter}, essa letra não existe na palavra',
+      tileFilled: 'Posição {pos}: {letter}, ainda não enviada',
+      tileEmpty: 'Posição {pos}: vazia',
+      won: 'Você acertou!', lost: 'Fim de jogo',
+      wordWas: 'A palavra era {word}.', usedAttempts: 'Você usou {used} de {total} tentativas.',
+      accentNote: 'Atenção: a palavra tem acento. Você digitou "{typed}" e a resposta é "{word}".',
+      share: 'Compartilhar resultado', shareHint: 'O padrão abaixo não revela a palavra.',
+      copy: 'Copiar', copied: 'Copiado!', copyFail: 'Não foi possível copiar automaticamente — selecione o texto abaixo.',
+      copyPlain: 'Copiar texto', shareLegend: '■ na posição · ▨ em outra posição · □ não existe',
+      shareText: 'Acabei de jogar hoje e usei {used} tentativas!', shareTextOne: 'Acabei de jogar hoje e usei 1 tentativa!', streakLine: 'Sequência: {n}',
+      shareTitle: 'cacaPalavras #{day}',
+      backHome: 'Voltar ao início', stats: 'Estatísticas',
+      currentStreak: 'Sequência atual', bestStreak: 'Melhor sequência', wins: 'Vitórias',
+      games: 'Partidas', winRate: '% de acerto', lastWord: 'Última palavra',
+      distribution: 'Distribuição de tentativas', guessN: '{n} tentativa(s)',
+      reset: 'Reiniciar dados de demonstração', streak: 'Sequência', winsShort: 'Vitórias',
+      trainBadge: 'Modo treino', trainNote: 'Treino: este resultado não afeta a sequência nem as estatísticas.',
+      emptyResult: 'Nenhuma partida concluída ainda.', emptyResultHint: 'Jogue uma partida para ver o resultado aqui.',
+      noColorLegend: 'Sem cor', theme: 'Tema',
+      tabs: { home: 'Início', game: 'Partida', result: 'Resultado', stats: 'Estatísticas' },
+      navLabel: 'Telas do protótipo', chromeNote: 'Navegação de demonstração: as abas acima pulam entre as telas do app (a seta ←/→ também funciona). Em telas ≥ 481px o app fica num frame de 420px simulando um celular; abaixo disso o frame ocupa 100% da largura.',
+      prefsTitle: 'Preferências de acessibilidade', fsLegend: 'Tamanho do texto',
+      fsHint: 'Altera a escala tipográfica real do app (tudo é construído em rem).',
+      swLegend: 'Opções', optContrastL: 'Alto contraste',
+      optContrastD: 'Preto e branco, bordas mais grossas, texturas em vez de cor.',
+      optNoColorL: 'Modo sem cor (daltônico)',
+      optNoColorD: 'Rampa cinza + hachura. O jogo continua legível em P&B.',
+      optMotionL: 'Reduzir animações',
+      optMotionD: 'Desliga flips e entradas. A preferência do sistema já é respeitada.',
+      optVoiceL: 'Anunciar feedback por voz',
+      optVoiceD: 'Região aria-live anuncia o resultado de cada tentativa.'
+    },
+    en: {
+      appName: 'cacaPalavras', tagline: 'The word of the day, every day.',
+      dayWord: 'Word of the day', dayWordEn: 'Word of the day #{n}',
+      play: 'Play', training: 'Practice mode',
+      trainingHint: 'Practice mode does not use up your daily word or break your streak.',
+      todayTheme: "Today's theme", letters: '{n} letters',
+      attempts: 'Guess {n} of {m}', tryLeft: '{n} tries left',
+      themeDemo: "Today's theme — demo",
+      themeDemoHint: 'Pick a theme to see all four. Changing the theme restarts the demo round.',
+      rules: 'How to play',
+      rulesBody: 'Find the themed word. Every guess shows the result of each letter: right spot (✓ and rounded corners), present in another spot (↑ and a cut corner), or not in the word (✗ and a dashed outline). Accents are optional — type "maca" for "maçã".',
+      legend: 'Feedback legend',
+      legendCorrect: 'In place', legendPresent: 'Wrong spot', legendAbsent: 'Not in word',
+      gridLabel: 'Guess grid', row: 'Row {row}', kbLabel: 'Virtual keyboard',
+      keyboardHint: 'Use the physical keyboard: type letters, Backspace deletes, Enter submits.',
+      enter: 'Enter', backspace: 'Delete', backspaceAria: 'Delete letter',
+      send: 'Submit guess', letterAria: 'Letter {letter}',
+      keyStateCorrect: 'in place', keyStatePresent: 'wrong spot', keyStateAbsent: 'not in the word',
+      emptyGuess: 'Type a word before submitting.',
+      wrongLength: 'The word must have {n} letters.',
+      feedbackStart: 'Type your first guess.',
+      rowAnnouncement: 'Row {row}. {details}',
+      letterCorrect: '{letter} in place', letterPresent: '{letter} present in another spot', letterAbsent: '{letter} not in the word',
+      tileCorrect: 'Position {pos}: {letter}, correct letter in place',
+      tilePresent: 'Position {pos}: {letter}, letter present but in another spot',
+      tileAbsent: 'Position {pos}: {letter}, this letter is not in the word',
+      tileFilled: 'Position {pos}: {letter}, not submitted yet',
+      tileEmpty: 'Position {pos}: empty',
+      won: 'You got it!', lost: 'Game over',
+      wordWas: 'The word was {word}.', usedAttempts: 'You used {used} of {total} tries.',
+      accentNote: 'Heads up: the word has an accent. You typed "{typed}" and the answer is "{word}".',
+      share: 'Share your result', shareHint: 'The pattern below never reveals the word.',
+      copy: 'Copy', copied: 'Copied!', copyFail: 'Could not copy automatically — select the text below.',
+      copyPlain: 'Copy text', shareLegend: '■ in place · ▨ wrong spot · □ not in word',
+      shareText: 'I just played today and used {used} tries!', shareTextOne: 'I just played today and used 1 try!', streakLine: 'Streak: {n}',
+      shareTitle: 'cacaPalavras #{day}',
+      backHome: 'Back to start', stats: 'Statistics',
+      currentStreak: 'Current streak', bestStreak: 'Best streak', wins: 'Wins',
+      games: 'Games', winRate: 'Win rate', lastWord: 'Last word',
+      distribution: 'Guess distribution', guessN: '{n} guess(es)',
+      reset: 'Reset demo data', streak: 'Streak', winsShort: 'Wins',
+      trainBadge: 'Practice mode', trainNote: 'Practice: this result does not affect the streak or the statistics.',
+      emptyResult: 'No finished game yet.', emptyResultHint: 'Play a round to see the result here.',
+      noColorLegend: 'No color', theme: 'Theme',
+      tabs: { home: 'Start', game: 'Game', result: 'Result', stats: 'Statistics' },
+      navLabel: 'Prototype screens', chromeNote: 'Demo navigation: the tabs above jump between the app screens (←/→ arrows also work). From 481px the app sits in a 420px frame simulating a phone; below that the frame takes the full width.',
+      prefsTitle: 'Accessibility preferences', fsLegend: 'Text size',
+      fsHint: 'Changes the real typographic scale of the app (everything is built in rem).',
+      swLegend: 'Options', optContrastL: 'High contrast',
+      optContrastD: 'Black and white, thicker borders, textures instead of colour.',
+      optNoColorL: 'No-colour (colourblind) mode',
+      optNoColorD: 'Grey ramp + hatching. The game stays readable in B&W.',
+      optMotionL: 'Reduce motion',
+      optMotionD: 'Turns off flips and entrances. The system preference is already respected.',
+      optVoiceL: 'Announce feedback by voice',
+      optVoiceD: 'An aria-live region announces the result of every guess.'
+    }
+  };
+
+  function fmt(str, vars) {
+    return String(str).replace(/\{(\w+)\}/g, function (_, k) { return vars[k] !== undefined ? vars[k] : '{' + k + '}'; });
+  }
+
+  /* ------------------------------------------------------ persistência */
+  var store = (function () {
+    var mem = {}, ok = true;
+    try { localStorage.setItem('__cp_probe', '1'); localStorage.removeItem('__cp_probe'); }
+    catch (e) { ok = false; }
+    return {
+      get: function (key, dflt) {
+        try {
+          var raw = ok ? localStorage.getItem(key) : mem[key];
+          return raw ? JSON.parse(raw) : dflt;
+        } catch (e) { return dflt; }
+      },
+      set: function (key, value) {
+        try {
+          if (ok) localStorage.setItem(key, JSON.stringify(value));
+          else mem[key] = value;
+        } catch (e) { mem[key] = value; }
+      }
+    };
+  })();
+
+  var STATS_KEY = 'cacaPalavras:b:stats';
+  var PREFS_KEY = 'cacaPalavras:b:prefs';
+  var DEFAULT_STATS = { currentStreak: 0, bestStreak: 0, games: 0, wins: 0, lastPlayedDate: null, lastWord: null, guessDistribution: [0, 0, 0, 0, 0, 0] };
+  function loadStats() {
+    var s = store.get(STATS_KEY, null);
+    if (!s) return Object.assign({}, DEFAULT_STATS);
+    return Object.assign({}, DEFAULT_STATS, s);
+  }
+
+  /* -------------------------------------------------------------- estado */
+  var state = {
+    lang: 'pt',
+    theme: 'animals',
+    screen: 'home',
+    mode: 'daily',
+    target: '',
+    targetNorm: '',
+    rows: [],
+    current: '',
+    keyStates: {},
+    done: false,
+    won: false,
+    result: null,
+    animRow: -1,
+    timer: null,
+    startedAt: null
+  };
+
+  function t(k) { return T[state.lang][k]; }
+  function todayKey() { return toDateKey(new Date()); }
+
+  /* --------------------------------------------------------- elementos */
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var els = {
+    root: document.documentElement,
+    tablist: $('#tablist'),
+    skip: $('#skipLink'),
+    app: $('#app'),
+    langSwitch: $('#langSwitch'),
+    prefsBtn: $('#prefsBtn'),
+    prefsPanel: $('#prefsPanel'),
+    feedback: $('#feedback'),
+    feedbackError: $('#feedbackError'),
+    grid: $('#grid'),
+    keyboard: $('#keyboard'),
+    gameStatus: $('#gameStatus'),
+    gameThemePill: $('#gameThemePill'),
+    gameModePill: $('#gameModePill'),
+    kbHint: $('#kbHint'),
+    copyStatus: $('#copyStatus'),
+    shareGrid: $('#shareGrid'),
+    shareText: $('#shareText')
+  };
+
+  /* -------------------------------------------------------- preferências */
+  var prefs = Object.assign({ fs: 'md', contrast: 'normal', nocolor: 'off', motion: 'auto', voice: true, lang: 'pt' }, store.get(PREFS_KEY, {}));
+  var osReduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function applyPrefs() {
+    var r = els.root;
+    r.setAttribute('data-fs', prefs.fs);
+    r.setAttribute('data-contrast', prefs.contrast);
+    r.setAttribute('data-nocolor', prefs.nocolor);
+    r.setAttribute('data-motion', prefs.motion);
+    r.setAttribute('lang', state.lang === 'pt' ? 'pt-BR' : 'en');
+    /* aria-live é alternável: quem prefere ler no próprio ritmo desliga o anúncio. */
+    els.feedback.setAttribute('aria-live', prefs.voice ? 'polite' : 'off');
+    els.feedbackError.setAttribute('aria-live', prefs.voice ? 'assertive' : 'off');
+    /* Rede de segurança: no modo sem cor, o app inteiro é grayscale.
+       As texturas (hachura) continuam visíveis — só o matiz some. */
+    els.app.style.filter = prefs.nocolor === 'on' ? 'grayscale(1)' : '';
+    store.set(PREFS_KEY, prefs);
+  }
+
+  function syncPrefInputs() {
+    var fsRadio = document.querySelector('input[name="fs"][value="' + prefs.fs + '"]');
+    if (fsRadio) fsRadio.checked = true;
+    $('#optContrast').checked = prefs.contrast === 'high';
+    $('#optNoColor').checked = prefs.nocolor === 'on';
+    $('#optMotion').checked = prefs.motion === 'reduce';
+    $('#optVoice').checked = !!prefs.voice;
+  }
+
+  /* ------------------------------------------------------------- helpers */
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function maxAttempts(len) { return len <= 4 ? 6 : 7; }
+  function theme() { return THEMES[state.lang][state.theme]; }
+  function length() { return theme().length; }
+
+  /* Mesma ordem do app real: verdes primeiro (consumindo ocorrências),
+     depois amarelos, e cinza é o excedente. */
+  function computeFeedback(answer, guess) {
+    var a = normalize(answer), g = normalize(guess);
+    var result = new Array(g.length).fill('absent');
+    var remaining = {};
+    for (var i = 0; i < a.length; i++) {
+      if (g[i] === a[i]) result[i] = 'correct';
+      else remaining[a[i]] = (remaining[a[i]] || 0) + 1;
+    }
+    for (var j = 0; j < g.length; j++) {
+      if (result[j] === 'correct') continue;
+      var ch = g[j];
+      if ((remaining[ch] || 0) > 0) { result[j] = 'present'; remaining[ch] -= 1; }
+    }
+    return result;
+  }
+  var RANK = { absent: 0, present: 1, correct: 2 };
+  function applyKeyState(letter, st) {
+    var cur = state.keyStates[letter];
+    if (!cur || RANK[st] > RANK[cur]) state.keyStates[letter] = st;
+  }
+  var SYMBOL = { correct: '✓', present: '↑', absent: '✗' };
+
+  /* --------------------------------------------------------- render: home */
+  function renderHome() {
+    var key = todayKey();
+    var th = theme();
+    var stats = loadStats();
+
+    $('#homeEyebrow').textContent = fmt(t('dayWordEn'), { n: dayNumber(key) });
+    $('#homeTagline').textContent = t('tagline');
+    $('#homeDate').textContent = new Date().toLocaleDateString(state.lang === 'pt' ? 'pt-BR' : 'en-GB', { weekday: 'long', day: '2-digit', month: 'long' });
+    $('#homeIcon').textContent = th.icon;
+    $('#homeThemeLabel').textContent = t('todayTheme');
+    $('#homeThemeName').textContent = th.name;
+    $('#homeThemeLen').textContent = fmt(t('letters'), { n: th.length });
+    $('#playBtn').textContent = t('play');
+    $('#trainBtn').textContent = t('training');
+    $('#trainHint').textContent = t('trainingHint');
+    $('#themeDemoSummary').textContent = t('themeDemo');
+    $('#themeDemoHint').textContent = t('themeDemoHint');
+    $('#rulesSummary').textContent = t('rules');
+    $('#rulesBody').textContent = t('rulesBody');
+    $('#chipStreakK').textContent = t('streak');
+    $('#chipWinsK').textContent = t('winsShort');
+    $('#chipRateK').textContent = t('winRate');
+    $('#chipStreak').textContent = stats.currentStreak;
+    $('#chipWins').textContent = stats.wins;
+    $('#chipRate').textContent = (stats.games ? Math.round((stats.wins / stats.games) * 100) : 0) + '%';
+
+    /* Seletor de tema (demonstração dos 4 temas do MVP).
+       O valor inicial é o tema real do dia; trocar reinicia a rodada. */
+    var box = $('#themeRadios');
+    box.innerHTML = '';
+    THEME_IDS.forEach(function (id) {
+      var meta = THEMES[state.lang][id];
+      var label = document.createElement('label');
+      label.className = 'switch';
+      label.innerHTML =
+        '<input type="radio" name="demoTheme" value="' + id + '"' + (id === state.theme ? ' checked' : '') + '>' +
+        '<span class="switch__text"><b>' + meta.icon + ' ' + esc(meta.name) + '</b><span>' + fmt(t('letters'), { n: meta.length }) + '</span></span>';
+      box.appendChild(label);
+    });
+  }
+
+  /* -------------------------------------------------------- render: grade */
+  function tileLabel(pos, letter, st) {
+    if (st === 'correct') return fmt(t('tileCorrect'), { pos: pos, letter: letter });
+    if (st === 'present') return fmt(t('tilePresent'), { pos: pos, letter: letter });
+    if (st === 'absent') return fmt(t('tileAbsent'), { pos: pos, letter: letter });
+    if (st === 'filled') return fmt(t('tileFilled'), { pos: pos, letter: letter });
+    return fmt(t('tileEmpty'), { pos: pos });
+  }
+
+  function renderGrid() {
+    var len = length(), max = maxAttempts(len);
+    var html = '';
+    for (var r = 0; r < max; r++) {
+      var evaluated = r < state.rows.length;
+      var guess = evaluated ? state.rows[r].guess : (r === state.rows.length ? state.current : '');
+      var res = evaluated ? state.rows[r].result : null;
+      /* A linha inteira tem um rótulo próprio: o leitor de tela pode pular
+         direto para a linha ("Linha 2: A na posição, E fora da posição"). */
+      var rowLabel = fmt(t('row'), { row: r + 1 }) + ': ' + (evaluated
+        ? res.map(function (st, i) {
+            if (st === 'correct') return fmt(t('letterCorrect'), { letter: guess[i] });
+            if (st === 'present') return fmt(t('letterPresent'), { letter: guess[i] });
+            return fmt(t('letterAbsent'), { letter: guess[i] });
+          }).join(', ')
+        : (r === state.rows.length && state.current ? state.current : t('tileEmpty').replace('Posição {pos}: ', '')));
+      html += '<div class="grid__row" role="listitem" aria-label="' + esc(rowLabel) + '">';
+      for (var c = 0; c < len; c++) {
+        var ch = guess[c] || '';
+        var st = evaluated ? res[c] : (ch ? 'filled' : 'empty');
+        var reveal = (r === state.animRow && evaluated) ? ' tile--reveal" style="--i:' + c : '';
+        html += '<div class="tile' + reveal + '" data-state="' + st + '" role="img" aria-label="' + esc(tileLabel(c + 1, ch, st)) + '">' +
+                '<span class="tile__letter" aria-hidden="true">' + esc(ch) + '</span>' +
+                '<span class="tile__mark" aria-hidden="true">' + (SYMBOL[st] || '') + '</span>' +
+                '</div>';
+      }
+      html += '</div>';
+    }
+    els.grid.innerHTML = html;
+    els.grid.style.setProperty('--cols', len);
+    els.grid.setAttribute('aria-label', t('gridLabel'));
+  }
+
+  /* ----------------------------------------------------- render: teclado */
+  var LAYOUT = {
+    pt: [['Q','W','E','R','T','Y','U','I','O','P'], ['A','S','D','F','G','H','J','K','L','Ç'], ['Z','X','C','V','B','N','M']],
+    en: [['Q','W','E','R','T','Y','U','I','O','P'], ['A','S','D','F','G','H','J','K','L'], ['Z','X','C','V','B','N','M']]
+  };
+
+  function renderKeyboard() {
+    var rows = LAYOUT[state.lang];
+    var html = '';
+    rows.forEach(function (row, i) {
+      html += '<div class="kb-row" role="group" aria-label="' + esc(fmt(t('row'), { row: i + 1 })) + '">';
+      row.forEach(function (ch) {
+        var st = state.keyStates[ch];
+        var aria = fmt(t('letterAria'), { letter: ch });
+        if (st) aria += ' — ' + t('keyState' + st.charAt(0).toUpperCase() + st.slice(1));
+        /* aria-disabled (e não "disabled") para a letra já provada ausente:
+           continua focável, então o estado permanece perceptível. */
+        var dis = st === 'absent' ? ' aria-disabled="true"' : '';
+        html += '<button type="button" class="key" data-key="' + ch + '" data-state="' + (st || 'unused') + '" aria-label="' + esc(aria) + '"' + dis + '>' +
+                '<span class="key__label" aria-hidden="true">' + esc(ch) + '</span>' +
+                '<span class="key__mark" aria-hidden="true">' + (st ? SYMBOL[st] : '') + '</span>' +
+                '</button>';
+      });
+      if (i === rows.length - 1) {
+        html += '<button type="button" class="key key--wide" data-key="Backspace" aria-label="' + esc(t('backspaceAria')) + '">' +
+                '<span class="key__label" aria-hidden="true">⌫</span></button>' +
+                '<button type="button" class="key key--wide key--enter" data-key="Enter" aria-label="↵ ' + esc(t('send')) + '">' +
+                '<span class="key__label" aria-hidden="true">↵</span></button>';
+      }
+      html += '</div>';
+    });
+    els.keyboard.innerHTML = html;
+    els.keyboard.setAttribute('aria-label', t('kbLabel'));
+  }
+
+  /* -------------------------------------------------------- render: geral */
+  function renderGame() {
+    var len = length(), max = maxAttempts(len);
+    var th = theme();
+    els.gameThemePill.textContent = th.icon + ' ' + th.name + ' · ' + fmt(t('letters'), { n: len });
+    els.gameModePill.hidden = state.mode !== 'train';
+    els.gameModePill.textContent = t('trainBadge');
+    var used = state.rows.length;
+    els.gameStatus.textContent = fmt(t('attempts'), { n: Math.min(used + 1, max), m: max }) + ' · ' + fmt(t('tryLeft'), { n: Math.max(0, max - used) });
+    els.kbHint.textContent = t('keyboardHint');
+    renderGrid();
+    renderKeyboard();
+  }
+
+  function renderFeedback(message) {
+    els.feedback.textContent = message || t('feedbackStart');
+  }
+
+  function renderResult() {
+    var box = $('#resultBox');
+    if (!state.result) {
+      box.classList.remove('result--lost');
+      $('#resultIcon').textContent = '—';
+      $('#resultTitle').textContent = t('emptyResult');
+      $('#resultWord').textContent = '—';
+      $('#resultMeta').textContent = t('emptyResultHint');
+      $('#resultNote').hidden = true;
+      $('#shareGrid').innerHTML = '';
+      els.shareText.textContent = '';
+      $('#copyBtn').disabled = true;
+      $('#copySelectBtn').disabled = true;
+      return;
+    }
+    var r = state.result;
+    box.classList.toggle('result--lost', !r.won);
+    $('#resultIcon').textContent = r.won ? '✓' : '✗';
+    $('#resultTitle').textContent = r.won ? t('won') : t('lost');
+    $('#resultWord').textContent = r.word;
+    $('#resultMeta').textContent = fmt(t('wordWas'), { word: r.word }) + ' ' + fmt(t('usedAttempts'), { used: r.used, total: r.max });
+    var note = $('#resultNote');
+    if (r.word !== normalize(r.word) && r.typed) {
+      note.hidden = false;
+      note.textContent = fmt(t('accentNote'), { typed: r.typed.toLowerCase(), word: r.word });
+    } else { note.hidden = true; }
+    if (r.mode === 'train') {
+      note.hidden = false;
+      note.textContent = t('trainNote');
+    }
+    $('#shareTitle').textContent = t('share');
+    $('#shareHint').textContent = t('shareHint');
+    $('#copyBtn').textContent = t('copy');
+    $('#copySelectBtn').textContent = t('copyPlain');
+    $('#copyBtn').disabled = false;
+    $('#copySelectBtn').disabled = false;
+    $('#resultHomeBtn').textContent = t('backHome');
+    $('#resultStatsBtn').textContent = t('stats');
+
+    /* Grid de compartilhamento: a MESMA linguagem de formas da grade do jogo. */
+    var html = '', counts = { correct: 0, present: 0, absent: 0 };
+    r.rows.forEach(function (row) {
+      html += '<div class="share-grid__row">';
+      row.result.forEach(function (st) {
+        counts[st] += 1;
+        html += '<span class="tile tile--tiny" data-state="' + st + '"><span class="tile__mark">' + SYMBOL[st] + '</span></span>';
+      });
+      html += '</div>';
+    });
+    els.shareGrid.innerHTML = html;
+    els.shareGrid.setAttribute('aria-label',
+      fmt(t('row'), { row: 1 }) + '-' + r.rows.length + ': ' + counts.correct + ' ' + t('legendCorrect').toLowerCase() + ', ' +
+      counts.present + ' ' + t('legendPresent').toLowerCase() + ', ' + counts.absent + ' ' + t('legendAbsent').toLowerCase());
+
+    var stats = loadStats();
+    var shareText = buildShareText(r, stats);
+    els.shareText.textContent = shareText;
+    els.shareText.setAttribute('aria-label', t('share') + ': ' + shareText.replace(/\n/g, '. '));
+  }
+
+  /* Texto compartilhado: NUNCA revela a palavra. Usa ■ ▨ □ (forma, não cor)
+     e carrega a legenda, para funcionar em impressão P&B e para daltônicos. */
+  var SHARE_CHAR = { correct: '■', present: '▨', absent: '□' };
+  function buildShareText(r, stats) {
+    var grid = r.rows.map(function (row) {
+      return row.result.map(function (st) { return SHARE_CHAR[st]; }).join('');
+    }).join('\n');
+    return [
+      fmt(t('shareTitle'), { day: dayNumber(todayKey()) }),
+      grid,
+      r.used === 1 ? t('shareTextOne') : fmt(t('shareText'), { used: r.used }),
+      fmt(t('streakLine'), { n: stats.currentStreak }),
+      t('shareLegend')
+    ].join('\n');
+  }
+
+  function renderStats() {
+    var s = loadStats();
+    $('#stStreakK').textContent = t('currentStreak'); $('#stStreak').textContent = s.currentStreak;
+    $('#stBestK').textContent = t('bestStreak'); $('#stBest').textContent = s.bestStreak;
+    $('#stWinsK').textContent = t('wins'); $('#stWins').textContent = s.wins;
+    $('#stGamesK').textContent = t('games'); $('#stGames').textContent = s.games;
+    $('#stRateK').textContent = t('winRate'); $('#stRate').textContent = (s.games ? Math.round((s.wins / s.games) * 100) : 0) + '%';
+    $('#stLastK').textContent = t('lastWord'); $('#stLast').textContent = s.lastWord || '—';
+    $('#distTitle').textContent = t('distribution');
+    $('#resetStatsBtn').textContent = t('reset');
+
+    var max = Math.max.apply(null, s.guessDistribution.concat([1]));
+    var list = $('#distList');
+    list.innerHTML = '';
+    s.guessDistribution.forEach(function (n, i) {
+      var li = document.createElement('li');
+      li.innerHTML = '<span>' + (i + 1) + '</span>' +
+        '<span class="dist__bar"><span class="dist__fill" style="width:' + (n / max * 100) + '%"></span></span>' +
+        '<span class="dist__n">' + n + '</span>';
+      list.appendChild(li);
+    });
+  }
+
+  /* Textos estáticos do chrome e do painel de preferências (traduzidos no
+     mesmo passe doscontents dinâmicos). */
+  function renderStaticText() {
+    els.tablist.setAttribute('aria-label', t('navLabel'));
+    $('#chromeNote').textContent = t('chromeNote');
+    $('#prefsTitle').textContent = t('prefsTitle');
+    $('#fsLegend').textContent = t('fsLegend');
+    $('#fsHint').textContent = t('fsHint');
+    $('#swLegend').textContent = t('swLegend');
+    $('#optContrastL').textContent = t('optContrastL');
+    $('#optContrastD').textContent = t('optContrastD');
+    $('#optNoColorL').textContent = t('optNoColorL');
+    $('#optNoColorD').textContent = t('optNoColorD');
+    $('#optMotionL').textContent = t('optMotionL');
+    $('#optMotionD').textContent = t('optMotionD');
+    $('#optVoiceL').textContent = t('optVoiceL');
+    $('#optVoiceD').textContent = t('optVoiceD');
+    var tabs = Array.prototype.slice.call(els.tablist.querySelectorAll('[role="tab"]'));
+    tabs.forEach(function (tab) { tab.textContent = t('tabs')[tab.dataset.screen]; });
+  }
+
+  function renderChrome() {
+    var tabs = Array.prototype.slice.call(els.tablist.querySelectorAll('[role="tab"]'));
+    tabs.forEach(function (tab) {
+      var on = tab.dataset.screen === state.screen;
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      tab.tabIndex = on ? 0 : -1;
+    });
+    ['home', 'game', 'result', 'stats'].forEach(function (id) {
+      var panel = document.getElementById('screen-' + id);
+      if (panel) panel.hidden = id !== state.screen;
+    });
+  }
+
+  function renderAll() {
+    applyPrefs();
+    renderStaticText();
+    renderHome();
+    renderGame();
+    renderResult();
+    renderStats();
+    renderChrome();
+    syncPrefInputs();
+  }
+
+  /* ------------------------------------------------------------ navegação */
+  function setScreen(id) {
+    state.screen = id;
+    renderChrome();
+    if (id === 'home') renderHome();
+    if (id === 'game') renderGame();
+    if (id === 'result') renderResult();
+    if (id === 'stats') renderStats();
+  }
+
+  els.tablist.addEventListener('click', function (e) {
+    var tab = e.target.closest('[role="tab"]');
+    if (tab) setScreen(tab.dataset.screen);
+  });
+  /* Padrão APG: ← → movem entre abas (ativação automática), Home/End vão às pontas. */
+  els.tablist.addEventListener('keydown', function (e) {
+    var tabs = Array.prototype.slice.call(els.tablist.querySelectorAll('[role="tab"]'));
+    var i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    var next = null;
+    if (e.key === 'ArrowRight') next = (i + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    if (next === null) return;
+    e.preventDefault();
+    tabs[next].focus();
+    setScreen(tabs[next].dataset.screen);
+  });
+
+  document.addEventListener('click', function (e) {
+    var go = e.target.closest('[data-go]');
+    if (go) setScreen(go.dataset.go);
+  });
+
+  /* ---------------------------------------------------------- preferências */
+  els.prefsBtn.addEventListener('click', function () {
+    var open = els.prefsPanel.hidden;
+    els.prefsPanel.hidden = !open;
+    els.prefsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) {
+      var first = els.prefsPanel.querySelector('input');
+      if (first) first.focus();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !els.prefsPanel.hidden) {
+      els.prefsPanel.hidden = true;
+      els.prefsBtn.setAttribute('aria-expanded', 'false');
+      els.prefsBtn.focus();
+    }
+  });
+  document.querySelectorAll('input[name="fs"]').forEach(function (radio) {
+    radio.addEventListener('change', function () { prefs.fs = radio.value; applyPrefs(); });
+  });
+  $('#optContrast').addEventListener('change', function (e) { prefs.contrast = e.target.checked ? 'high' : 'normal'; applyPrefs(); });
+  $('#optNoColor').addEventListener('change', function (e) { prefs.nocolor = e.target.checked ? 'on' : 'off'; applyPrefs(); });
+  $('#optMotion').addEventListener('change', function (e) { prefs.motion = e.target.checked ? 'reduce' : 'auto'; applyPrefs(); });
+  $('#optVoice').addEventListener('change', function (e) { prefs.voice = e.target.checked; applyPrefs(); });
+
+  /* ---------------------------------------------------------------- idioma */
+  els.langSwitch.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-set-lang]');
+    if (!btn) return;
+    setLang(btn.dataset.setLang);
+  });
+  function setLang(lang) {
+    state.lang = lang;
+    prefs.lang = lang;
+    els.langSwitch.querySelectorAll('[data-set-lang]').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.dataset.setLang === lang ? 'true' : 'false');
+    });
+    /* Trocar de idioma reinicia a rodada: o dicionário e o comprimento mudam.
+       O tema volta a ser o tema real do dia no novo idioma. */
+    state.theme = THEME_IDS[themeIndexFor(todayKey(), lang)];
+    state.target = '';
+    state.rows = []; state.current = ''; state.keyStates = {}; state.done = false; state.result = null;
+    els.app.setAttribute('lang', lang === 'pt' ? 'pt-BR' : 'en');
+    els.root.setAttribute('lang', lang === 'pt' ? 'pt-BR' : 'en');
+    renderFeedback(t('feedbackStart'));
+    renderAll();
+  }
+
+  /* ------------------------------------------------------------- o jogo */
+  function startRound(mode) {
+    state.mode = mode;
+    state.rows = []; state.current = ''; state.keyStates = {}; state.done = false; state.result = null;
+    state.animRow = -1;
+    clearError();
+    var key = todayKey();
+    /* A palavra do dia é determinística: mesma data + mesmo idioma + mesmo
+       tema => mesma palavra para todo mundo (FNV-1a + mulberry32). */
+    state.target = pickWord(state.lang, state.theme, mode === 'daily' ? key : 'train-' + Date.now());
+    state.targetNorm = normalize(state.target);
+    renderFeedback(t('feedbackStart'));
+    renderGame();
+    setScreen('game');
+  }
+
+  function currentRowFull() { return state.current.length >= length(); }
+
+  function doType(ch) {
+    if (state.done || state.screen !== 'game') return;
+    if (currentRowFull()) return;
+    /* Letra já provada ausente é bloqueada (igual ao app real). */
+    if (state.keyStates[ch] === 'absent') return;
+    state.current += ch;
+    renderGrid();
+  }
+
+  function doBackspace() {
+    if (state.done || state.screen !== 'game') return;
+    state.current = state.current.slice(0, -1);
+    renderGrid();
+  }
+
+  function showError(msg) {
+    els.feedbackError.hidden = false;
+    els.feedbackError.textContent = '';
+    /* Limpa antes de reescrever:garante que leitores de tela re-anunciem
+       a mesma mensagem duas vezes seguidas. */
+    window.setTimeout(function () { els.feedbackError.textContent = msg; }, 30);
+  }
+  function clearError() { els.feedbackError.hidden = true; els.feedbackError.textContent = ''; }
+
+  function doSubmit() {
+    if (state.done || state.screen !== 'game') return;
+    clearError();
+    var len = length();
+    if (!state.current.length) { showError(t('emptyGuess')); return; }
+    if (state.current.length !== len) { showError(fmt(t('wrongLength'), { n: len })); return; }
+
+    var guess = state.current;
+    var result = computeFeedback(state.target, guess);
+    state.rows.push({ guess: guess, result: result });
+    /* Recalcula o estado de todas as teclas a partir do histórico completo:
+       a prioridade é correta > presente > ausente, então uma letra confirmada
+       continua correta mesmo que uma tentativa posterior a erre. */
+    state.keyStates = {};
+    state.rows.forEach(function (row) {
+      row.result.forEach(function (st, i) {
+        var raw = row.guess[i];
+        applyKeyState(raw, st);                                   // ex.: "Ç" continua "Ç"
+        applyKeyState(normalize(raw).toUpperCase(), st);           // ex.: "ç" também marca "C"
+      });
+    });
+    state.current = '';
+    state.animRow = state.rows.length - 1;
+
+    var won = result.every(function (s) { return s === 'correct'; });
+    var used = state.rows.length;
+    state.done = true;
+    state.won = won;
+
+    /* Anúncio do resultado da tentativa (WCAG 4.1.3). */
+    var details = result.map(function (st, i) {
+      var letter = guess[i];
+      if (st === 'correct') return fmt(t('letterCorrect'), { letter: letter });
+      if (st === 'present') return fmt(t('letterPresent'), { letter: letter });
+      return fmt(t('letterAbsent'), { letter: letter });
+    }).join('. ') + '.';
+    renderFeedback(fmt(t('rowAnnouncement'), { row: used, details: details }));
+
+    renderGrid();
+    renderKeyboard();
+
+    if (state.timer) window.clearTimeout(state.timer);
+    var delay = 460 + length() * 70;
+    state.timer = window.setTimeout(function () {
+      state.animRow = -1;
+      if (won) {
+        state.result = { won: true, used: used, max: maxAttempts(len), rows: state.rows, word: state.target, typed: guess, mode: state.mode };
+        recordResult(true);
+        setScreen('result');
+      } else if (used >= maxAttempts(len)) {
+        state.result = { won: false, used: used, max: maxAttempts(len), rows: state.rows, word: state.target, typed: guess, mode: state.mode };
+        recordResult(false);
+        setScreen('result');
+      } else {
+        state.done = false;
+        renderGame();
+      }
+    }, delay);
+  }
+
+  /* Registra o resultado nas estatísticas (apenas no jogo do dia). */
+  function recordResult(won) {
+    if (state.mode === 'train') return;
+    var s = loadStats();
+    var key = todayKey();
+    /* Streak = dias consecutivos jogados (vencer ou perder); pular um dia
+       zera para 1 no próximo jogo, não para 0 (mesma regra do app real). */
+    if (s.lastPlayedDate !== key) {
+      var continues = s.lastPlayedDate === previousDateKey(key);
+      s.currentStreak = continues ? s.currentStreak + 1 : 1;
+      s.bestStreak = Math.max(s.bestStreak, s.currentStreak);
+      s.lastPlayedDate = key;
+    }
+    s.games += 1;
+    s.wins += won ? 1 : 0;
+    var idx = Math.max(0, Math.min(s.guessDistribution.length - 1, state.rows.length - 1));
+    s.guessDistribution[idx] += 1;
+    if (won) s.lastWord = state.target;
+    store.set(STATS_KEY, s);
+  }
+
+  /* ------------------------------------------------- eventos do teclado */
+  els.keyboard.addEventListener('click', function (e) {
+    var key = e.target.closest('.key');
+    if (!key) return;
+    if (key.getAttribute('aria-disabled') === 'true') return;
+    var k = key.dataset.key;
+    if (k === 'Enter') doSubmit();
+    else if (k === 'Backspace') doBackspace();
+    else doType(k);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var target = e.target;
+    /* Guarda defensiva: e.target pode ser `document` quando o evento é
+       disparado fora de um elemento (ex.: automação de testes). */
+    if (target && typeof target.matches === 'function' &&
+        (target.matches('input, textarea, select') || target.isContentEditable)) return;
+    if (state.screen !== 'game') return;
+
+    if (e.key === 'Backspace') { e.preventDefault(); doBackspace(); flashKey('Backspace'); return; }
+    if (e.key === 'Enter') { e.preventDefault(); doSubmit(); flashKey('Enter'); return; }
+    var ch = e.key.toUpperCase();
+    if (/^[A-Z]$/.test(ch) || ch === 'Ç') {
+      e.preventDefault();
+      if (state.keyStates[ch] === 'absent') return;
+      doType(ch);
+      flashKey(ch);
+    }
+  });
+
+  /* Espelha o estado no teclado virtual quando o jogador usa o físico. */
+  function flashKey(ch) {
+    var btn = els.keyboard.querySelector('.key[data-key="' + (ch === 'Ç' ? 'Ç' : ch) + '"]');
+    if (!btn) return;
+    btn.dataset.flash = 'true';
+    window.setTimeout(function () { btn.removeAttribute('data-flash'); }, 140);
+  }
+
+  /* ---------------------------------------------------------- botões UI */
+  $('#playBtn').addEventListener('click', function () { startRound('daily'); });
+  $('#trainBtn').addEventListener('click', function () { startRound('train'); });
+  $('#resultHomeBtn').addEventListener('click', function () { setScreen('home'); });
+  $('#resultStatsBtn').addEventListener('click', function () { setScreen('stats'); });
+  $('#resetStatsBtn').addEventListener('click', function () {
+    store.set(STATS_KEY, Object.assign({}, DEFAULT_STATS));
+    renderStats(); renderHome();
+  });
+
+  $('#themeRadios').addEventListener('change', function (e) {
+    if (e.target.name !== 'demoTheme') return;
+    state.theme = e.target.value;
+    state.target = ''; state.rows = []; state.current = ''; state.keyStates = {}; state.done = false; state.result = null;
+    renderFeedback(t('feedbackStart'));
+    renderHome(); renderGame(); renderResult();
+  });
+
+  /* Copiar o texto de compartilhamento. */
+  $('#copyBtn').addEventListener('click', function () {
+    var text = els.shareText.textContent;
+    if (!text) return;
+    var done = function () {
+      $('#copyBtn').textContent = t('copied');
+      els.copyStatus.textContent = t('copied');
+      window.setTimeout(function () { $('#copyBtn').textContent = t('copy'); }, 2000);
+    };
+    var fail = function () { els.copyStatus.textContent = t('copyFail'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text, done, fail); });
+    } else { fallbackCopy(text, done, fail); }
+  });
+  $('#copySelectBtn').addEventListener('click', function () {
+    var text = els.shareText.textContent;
+    if (!text) return;
+    fallbackCopy(text, function () { els.copyStatus.textContent = t('copied'); }, function () { els.copyStatus.textContent = t('copyFail'); });
+  });
+  function fallbackCopy(text, done, fail) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      ok ? done() : fail();
+    } catch (e) { fail(); }
+  }
+
+  /* ------------------------------------------------------- paleta (notas) */
+  function renderSwatches() {
+    var rows = [
+      ['--ink', 'Texto principal', '18.13:1'],
+      ['--ink-2', 'Texto secundário', '8.53:1'],
+      ['--brand', 'Ação primária (branco sobre)', '6.96:1'],
+      ['--ok-fill', 'Casa correta (branco sobre)', '6.58:1'],
+      ['--near-ink', 'Casa fora da posição', '8.11:1'],
+      ['--no-ink', 'Casa ausente', '7.48:1'],
+      ['--line', 'Bordas', '4.47:1'],
+      ['--ok-line', 'Borda da casa correta', '8.07:1'],
+      ['--near-line', 'Borda da casa fora da posição', '6.39:1'],
+      ['--no-line', 'Borda tracejada da casa ausente', '4.83:1']
+    ];
+    var box = $('#swatches');
+    if (!box) return;
+    box.innerHTML = rows.map(function (r) {
+      return '<div class="swatch"><span class="swatch__box" style="background:var(' + r[0] + ')"></span>' +
+        '<span>' + esc(r[1]) + '</span><span class="swatch__ratio">' + esc(r[2]) + '</span></div>';
+    }).join('');
+  }
+
+  /* ------------------------------------------------------------- arranque */
+  /* Gancho de depuração/QA: permite inspecionar o estado em um console ou em
+     um teste automatizado (ex.: `__cp.state.rows`). Não é usado pela UI. */
+  window.__cp = { state: state, t: t, fmt: fmt, computeFeedback: computeFeedback, pickWord: pickWord, themeIndexFor: themeIndexFor };
+
+  state.lang = prefs.lang === 'en' ? 'en' : 'pt';
+  /* Se o sistema pede menos movimento, o app já começa nele — a opção do
+     usuário só pode REDUZIR animação, nunca contrariar o sistema. */
+  if (prefs.motion === 'auto' && osReduceMotion) prefs.motion = 'reduce';
+  /* O tema inicial é o tema real do dia (a rotação evita repetir o de ontem). */
+  state.theme = THEME_IDS[themeIndexFor(todayKey(), state.lang)];
+  els.langSwitch.querySelectorAll('[data-set-lang]').forEach(function (b) {
+    b.setAttribute('aria-pressed', b.dataset.setLang === state.lang ? 'true' : 'false');
+  });
+  renderSwatches();
+  renderAll();
+  renderFeedback(t('feedbackStart'));
+  setScreen('home');
+})();
+</script>
+</body>
+</html>

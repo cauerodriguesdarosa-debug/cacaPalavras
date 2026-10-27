@@ -1,0 +1,1927 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  CONCEITO C — "IDENTIDADE VISUAL TEMÁTICA"
+  cacaPalavras · protótipo estático (HTML único, sem build, sem rede)
+  ============================================================================
+
+  DIREÇÃO DE ARTE — 12 DECISÕES (com paleta e justificativa)
+  --------------------------------------------------------------------------
+  1. PALETA POR TEMA = IDENTIDADE, NÃO BRANDING GLOBAL.
+     Cada tema reescreve tokens CSS (--c-primary, --c-accent, --c-bg-*) via
+     [data-theme="..."] no <html>. A troca repinta a página inteira em tempo real.
+       animals : primária #2f9e6b · escura #1e6f4b · acento #ffd166 · 1º plano #e9f7ef · 2º plano #fff8e3
+       food    : primária #e4572e · escura #a53a18 · acento #ffb703 · 1º plano #fdefe7 · 2º plano #ffe9d9
+       science : primária #3d5afe · escura #2b3fc4 · acento #8e44ad · 1º plano #eceffd · 2º plano #e7f7f5
+       sports  : primária #1b6ca8 · escura #0f4a73 · acento #00b4d8 · 1º plano #e6f2fa · 2º plano #e9fbff
+     Justificativa: os matizes vêm da direção de arte do produto (src/data/themes.ts);
+     aqui eles ganham as derivadas escuras que faltam para bater 4.5:1 com texto claro.
+
+  2. SEMÂNTICA DE JOGO FIXA, DECORAÇÃO DE TEMA VARIÁVEL.
+     Verde (#1a8449→#126b3d), amarelo (#f5c043→#c78f06) e cinza (#5a636e→#454c55) são
+     IGUAIS nos 4 temas. A cor semântica é linguagem, não decoração: se o verde
+     mudasse a cada dia, o jogador teria que reaprender o código toda manhã.
+     O tema pinta o cenário (fundo, superfícies, badge, botões, ilustração, padrão),
+     nunca a grade.
+
+  3. HIERARQUIA DA GRADE COMO ELEMENTO FOCAL.
+     A grade de tentativas é o único bloco em que a COR não interfere: os tiles
+     nascem neutros (superfície clara + borda da linha do tema) e só ganham cor
+     semântica no reveal. A decoração do tema fica na moldura externa da grade
+     (fundo do painel, moldura do bloco), nunca atrás dela. Todo adorno
+     (ilustração, badge, eco do número) fica no topo ou no rodapé da tela.
+     Se a decoração competisse com a grade, o jogador perderia o ponto focal
+     em 2 segundos — e o padrão de tentativas é o que ele precisa ler.
+
+  4. REDUNDÂNCIA DE 4 CANAIS NO FEEDBACK (WCAG 1.4.1).
+     Cor + forma (arredondado=posição certa, chanfrado=fora da posição,
+     tracejado=ausente) + símbolo (✓ / ↑ / ✗) + aria-label descritivo.
+     A forma é o que salva o tema: mesmo em monocromia ou para daltonismo,
+     "canto cortado" e "borda tracejada" contam a história sozinhos.
+
+  5. TIPOGRAFIA DE PERSONALIDADE SEM WEBFONT.
+     Stack do sistema + peso 900 + caixa alta nos rótulos (tracking +0.14em) +
+     números com tracking -0.05em e tabular-nums. O display é a "voz" da marca:
+     #1024 gigante, como número de coleção.
+
+  6. "MARAVILHA DO DIA" COM ECO RISOGRAPH.
+     O número do dia aparece em --c-primary-d (contraste 6:1+) com uma cópia em
+     --c-accent deslocada 5px para baixo/direita. O eco cria profundidade sem
+     inventar texto claro sobre claro (o eco nunca carrega informação).
+
+  7. TILES COM PROFUNDIDADE (SKEUOMÓRFO LEVE) + FLIP 3D.
+     Duas faces (frontal/back) com rotateX(180deg), stagger de 70ms por coluna,
+     gradiente interno na face de trás e borda inferior sólida (0 3px 0) no
+     estilo "elevado". O flip comunica "a resposta chegou"; o preenchimento de
+     cor é o que dá o resultado.
+
+  8. ILUSTRAÇÕES SVG ORIGINAIS, NÃO EMOJI.
+     Raposa (animals), pizza (food), frasco de laboratório (science), bola com
+     gomos (sports). Desenhadas com paths e pintadas por tokens CSS, então
+     repintam junto com o tema. Emoji fica fora da ilustração principal
+     (usado só no texto de compartilhamento, onde é o formato esperado).
+
+  9. BOTÕES "ELEVADOS" E BADGE DE TEMA.
+     Botão principal = gradiente vertical escuro + borda inferior sólida de 6px
+     que afunda no :active. Badge de tema = pílula de acento com ícone + nome em
+     caixa alta: é o selo do dia, sempre visível na Home e na Partida.
+
+  10. CONTRASTE VERIFICADO, SEM EXCEÇÕES (medido no DOM, não estimado).
+     Texto pequeno nunca usa --c-primary (falha 4.5:1 em animals e food): usa
+     --c-primary-d ou --ink. Botões, aba ativa, chip de tema e header usam o
+     gradiente --c-primary-d → --c-primary-d2 com texto branco (medido: 6.1:1 a
+     12.9:1). Sobre acento, a cor do texto é --c-on-accent (escuro em
+     animals/food/sports, branco em science, cujo roxo é escuro). Tiles
+     semânticos: 4.7:1 (verde), 5.8:1 (amarelo), 6.1:1 (cinza) contra a letra.
+
+  11. CELEBRAÇÃO EM CSS PURO, COM ESCOLA.
+     36 partículas de confete + estrelas SVG na tela de vitória, com prefers-
+     reduced-motion desligando tudo (particles nem são criadas). A celebrate é
+     curta (2.4s) e não bloqueia a leitura do resultado.
+
+  12. LAYOUT, ALVOS DE TOQUE E TRADE-OFFS DECLARADOS.
+     <480px: app ocupa 100% da largura. 480–1023px: moldura de celular de 420px
+     centralizada. ≥1024px: moldura + "artboard" de direção de arte ao lado
+     (paleta, ilustração, espécime tipográfico) — o mockup também é peça de
+     portfólio. Sem scroll horizontal em 320px (verificado no DOM).
+     Trade-off honesto: o brief pede "QWERTY de 3 linhas" E "alvos ≥44×44px", e
+     10 teclas numa fileira nunca cabem em 320px. Solução: o layout padrão é o
+     QWERTY de 3 linhas (10/9/7) com teclas de 46px de ALTURA; e o app mede a
+     largura real do teclado — se ela for < 360px, troca sozinho para o modo
+     "teclado grande" de 6 colunas, onde cada tecla tem 44×44px de verdade
+     (320px e 375px reais caem sempre nesse modo). Há um botão para alternar à
+     mão a qualquer momento.
+
+  --------------------------------------------------------------------------
+  NOTA DE FIDELIDADE: este é um MOCKUP estático e autocontido. A lógica de
+  seleção de palavra (FNV-1a + mulberry32, epoch 2024-01-01), os ids de tema
+  (animals/food/science/sports), os comprimentos (5/4/6/5), os textos e o
+  formato de compartilhamento foram copiados de src/ para que o protótipo e o
+  app real falem a mesma língua. As listas de palavras aqui são um recorte
+  curado (com pares acentuados PT/EN para demonstrar a regra "sem acento no
+  teclado, com acento na resposta").
+  ============================================================================
+-->
+<html lang="pt-BR" data-theme="animals" data-lang="pt" data-kbd="qwerty">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light" />
+<meta name="description" content="Conceito C — Identidade Visual Temática. Protótipo estático do cacaPalavras." />
+<title>cacaPalavras · Conceito C — Identidade Visual Temática</title>
+<style>
+/* ==========================================================================
+   0. RESET + TOKENS
+   ========================================================================== */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+img,svg{display:block;max-width:100%}
+button{font:inherit;color:inherit}
+
+:root{
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --r-xs:8px; --r-sm:12px; --r-md:18px; --r-lg:26px; --r-pill:999px;
+
+  /* Semântica de jogo — FIXA entre temas (decisão 2).
+     O verde de topo (#1a8449) foi escurecido até bater 5:1 com o branco da letra,
+     para que o contraste não dependa do tamanho do texto no tile. */
+  --ok-1:#1a8449; --ok-2:#126b3d; --ok-ink:#ffffff;
+  --pr-1:#f5c043; --pr-2:#c78f06; --pr-ink:#2b1d00;
+  --ab-1:#5a636e; --ab-2:#454c55; --ab-ink:#ffffff;
+
+  --line-neutral:#d8e3ec;
+  --dur:280ms;
+  --ease:cubic-bezier(.2,.8,.25,1);
+}
+
+/* ---- Paletas por tema (decisão 1). Sobrescrevem tokens do <html data-theme> */
+[data-theme="animals"]{
+  --c-primary:#2f9e6b; --c-primary-d:#1e6f4b; --c-primary-d2:#144d33;
+  --c-accent:#ffd166; --c-accent-d:#d29b22; --c-on-accent:#1d2b12;
+  --c-bg-1:#e9f7ef; --c-bg-2:#fff8e3; --c-bg-3:#d8f0e4;
+  --ink:#10261b; --ink-2:#3c5b4c; --surface:#ffffff; --surface-2:#f4fbf7; --line:#cfe6da;
+  --glow:47 158 107;
+}
+[data-theme="food"]{
+  --c-primary:#e4572e; --c-primary-d:#a53a18; --c-primary-d2:#74260c;
+  --c-accent:#ffb703; --c-accent-d:#c98d05; --c-on-accent:#33200a;
+  --c-bg-1:#fdefe7; --c-bg-2:#ffe9d9; --c-bg-3:#ffe0cb;
+  --ink:#2e1409; --ink-2:#6d3a28; --surface:#ffffff; --surface-2:#fff7f1; --line:#f0d6c4;
+  --glow:228 87 46;
+}
+[data-theme="science"]{
+  --c-primary:#3d5afe; --c-primary-d:#2b3fc4; --c-primary-d2:#1c2a8c;
+  --c-accent:#8e44ad; --c-accent-d:#6c3285; --c-on-accent:#ffffff;
+  --c-bg-1:#eceffd; --c-bg-2:#e7f7f5; --c-bg-3:#dfe3fb;
+  --ink:#141a44; --ink-2:#454c80; --surface:#ffffff; --surface-2:#f5f6ff; --line:#d7dbf7;
+  --glow:61 90 254;
+}
+[data-theme="sports"]{
+  --c-primary:#1b6ca8; --c-primary-d:#0f4a73; --c-primary-d2:#0a3453;
+  --c-accent:#00b4d8; --c-accent-d:#028aa6; --c-on-accent:#04222c;
+  --c-bg-1:#e6f2fa; --c-bg-2:#e9fbff; --c-bg-3:#d6ecf8;
+  --ink:#08243a; --ink-2:#35536b; --surface:#ffffff; --surface-2:#f3fafe; --line:#cfe3f0;
+  --glow:27 108 168;
+}
+
+body{
+  font-family:var(--font);
+  color:var(--ink);
+  background:var(--c-bg-2);
+  min-height:100vh;
+  overflow-x:hidden;           /* trava: nunca quero scroll horizontal */
+  -webkit-font-smoothing:antialiased;
+  transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+/* Padrão decorativo por tema (decisão 1): muda o "papel de parede" do app */
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+  transition:opacity var(--dur) var(--ease);
+}
+[data-theme="animals"] body::before{
+  background-image:radial-gradient(rgba(47,158,107,.16) 1.4px, transparent 1.5px);
+  background-size:22px 22px;
+}
+[data-theme="food"] body::before{
+  background-image:repeating-linear-gradient(45deg, rgba(228,87,46,.13) 0 2px, transparent 2px 16px);
+}
+[data-theme="science"] body::before{
+  background-image:linear-gradient(rgba(61,90,254,.12) 1px, transparent 1px),
+                   linear-gradient(90deg, rgba(61,90,254,.12) 1px, transparent 1px);
+  background-size:28px 28px;
+}
+[data-theme="sports"] body::before{
+  background-image:repeating-linear-gradient(-45deg, rgba(27,108,168,.14) 0 3px, transparent 3px 18px);
+}
+
+/* ==========================================================================
+   1. UTILITÁRIOS DE ACESSIBILIDADE
+   ========================================================================== */
+.sr-only{
+  position:absolute!important; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
+}
+.skip-link{
+  position:fixed; top:8px; left:8px; z-index:200;
+  transform:translateY(-160%);
+  background:var(--c-primary-d); color:#fff; font-weight:800; font-size:14px;
+  padding:13px 18px; border-radius:var(--r-sm); text-decoration:none; min-height:44px;
+  display:flex; align-items:center;
+  box-shadow:0 8px 20px -8px rgba(0,0,0,.5);
+}
+.skip-link:focus{transform:translateY(0)}
+:focus-visible{
+  outline:3px solid var(--c-primary-d);
+  outline-offset:3px;
+  border-radius:6px;
+}
+/* Sobre o header escuro, o anel usa o acento (amarelo/laranja/ciano) para manter
+   contraste contra o fundo em vez do azul primário. */
+.phone__top :focus-visible{outline-color:var(--c-accent)}
+[data-theme="science"] :focus-visible{outline-color:var(--c-primary-d)}
+[hidden]{display:none!important}
+
+/* ==========================================================================
+   2. STAGE (mobile-first) + ARTBOARD (>=1024px)
+   ========================================================================== */
+.stage{
+  position:relative; z-index:1;
+  width:100%;
+  display:flex; justify-content:center;
+}
+.artboard{display:none}
+
+@media (min-width:1024px){
+  .stage{
+    display:grid;
+    grid-template-columns:minmax(340px,520px) 420px;
+    gap:clamp(32px,4vw,64px);
+    align-items:center;
+    padding:44px 32px;
+  }
+  .artboard{
+    display:block;
+    background:linear-gradient(160deg,var(--c-bg-1),var(--c-bg-2));
+    border:2px solid var(--line);
+    border-radius:var(--r-lg);
+    padding:clamp(20px,2.4vw,30px);
+    box-shadow:0 30px 60px -40px rgba(0,0,0,.55);
+  }
+}
+
+.ab-eyebrow{
+  margin:0 0 6px; font-size:11px; font-weight:900; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--c-primary-d);
+}
+.ab-title{
+  margin:0; font-size:clamp(26px,3.2vw,40px); font-weight:900; line-height:1.02;
+  letter-spacing:-.035em; text-transform:uppercase; color:var(--ink);
+}
+.ab-lede{
+  margin:12px 0 0; font-size:14px; line-height:1.55; color:var(--ink-2); max-width:46ch;
+}
+.ab-art{
+  margin:18px 0 4px; display:flex; justify-content:center;
+  filter:drop-shadow(0 14px 18px rgba(0,0,0,.16));
+}
+.ab-art svg{width:min(230px,60%); height:auto}
+.ab-block{margin-top:18px; padding-top:16px; border-top:2px dashed var(--line)}
+.ab-label{
+  margin:0 0 10px; font-size:10px; font-weight:900; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--ink-2);
+}
+.swatches{display:flex; flex-wrap:wrap; gap:8px}
+.swatch{
+  display:flex; align-items:center; gap:8px; padding:7px 10px 7px 7px;
+  background:var(--surface); border:2px solid var(--line); border-radius:var(--r-pill);
+  font-size:11px; font-weight:800; color:var(--ink-2);
+  font-family:var(--font-mono);
+}
+.swatch i{width:20px; height:20px; border-radius:50%; background:var(--sw); box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.type-spec{display:grid; gap:10px}
+.type-spec b{display:block; color:var(--ink)}
+.spec-display{font-size:30px; font-weight:900; letter-spacing:-.04em; text-transform:uppercase}
+.spec-label{font-size:11px; font-weight:900; letter-spacing:.18em; text-transform:uppercase; color:var(--c-primary-d)}
+.spec-body{font-size:14px; font-weight:500; color:var(--ink-2)}
+.ab-notes{margin:0; padding-left:18px; font-size:13px; line-height:1.6; color:var(--ink-2)}
+.ab-notes li+li{margin-top:6px}
+
+/* ==========================================================================
+   3. MOLDURA DO CELULAR
+   ========================================================================== */
+.phone{
+  width:100%;
+  background:var(--c-bg-1);
+  display:flex; flex-direction:column;
+  min-height:100vh;
+  transition:background var(--dur) var(--ease);
+}
+@media (min-width:480px){
+  .phone{
+    width:420px; min-height:0; border-radius:38px; overflow:hidden;
+    box-shadow:0 0 0 8px #0d1218, 0 0 0 9px #38424f, 0 44px 80px -34px rgba(0,0,0,.65);
+  }
+}
+.phone__top{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:14px 16px 10px;
+  /* Gradiente escuro: branco sobre --c-primary não bateria 4.5:1 nos textos pequenos. */
+  background:linear-gradient(180deg,var(--c-primary-d),var(--c-primary-d2));
+  color:#fff;
+}
+.brand{display:flex; align-items:center; gap:9px; min-width:0}
+.brand__mark{
+  width:34px; height:34px; flex:0 0 34px; border-radius:11px;
+  background:var(--c-accent); color:var(--c-on-accent);
+  display:grid; place-items:center;
+  box-shadow:0 3px 0 var(--c-accent-d);
+}
+.brand__mark svg{width:22px; height:22px}
+.brand__name{font-size:19px; font-weight:900; letter-spacing:-.04em; line-height:1}
+.brand__tag{font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; opacity:.82; margin-top:3px; display:block}
+@media (max-width:359px){
+  .brand__tag{display:none}
+  .brand__name{font-size:18px}
+}
+
+.lang{display:flex; gap:4px; background:rgba(0,0,0,.24); padding:4px; border-radius:var(--r-pill)}
+.lang button{
+  min-width:44px; min-height:44px; border:0; border-radius:var(--r-pill);
+  background:transparent; color:#fff; font-size:12px; font-weight:900; letter-spacing:.08em;
+  cursor:pointer; transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.lang button[aria-pressed="true"]{background:var(--c-accent); color:var(--c-on-accent)}
+
+/* Abas: navegação principal, sticky no topo */
+.tabs{
+  position:sticky; top:0; z-index:30;
+  display:grid; grid-template-columns:repeat(4,1fr); gap:4px;
+  padding:8px; background:var(--c-bg-1);
+  border-bottom:2px solid var(--line);
+}
+.tab{
+  min-height:46px; border:2px solid transparent; border-radius:var(--r-sm);
+  background:transparent; color:var(--ink-2);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  font-size:9.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase;
+  cursor:pointer; transition:all var(--dur) var(--ease);
+}
+.tab svg{width:19px; height:19px}
+.tab[aria-selected="true"]{
+  background:linear-gradient(180deg,var(--c-primary-d),var(--c-primary-d2));
+  color:#fff; border-color:var(--c-primary-d2);
+  box-shadow:0 3px 0 var(--c-primary-d2);
+}
+
+.phone__body{
+  flex:1; display:flex; flex-direction:column;
+  background:
+    radial-gradient(120% 60% at 50% 0%, var(--c-bg-3) 0%, transparent 70%),
+    var(--c-bg-1);
+}
+@media (min-width:1024px){
+  .phone__body{max-height:min(830px,calc(100vh - 90px)); overflow-y:auto; overscroll-behavior:contain}
+  .phone__body::-webkit-scrollbar{width:6px}
+  .phone__body::-webkit-scrollbar-thumb{background:var(--c-line,var(--line)); border-radius:99px}
+}
+main{flex:1; display:block}
+.panel{padding:18px 16px 24px; animation:panelIn var(--dur) var(--ease) both}
+@keyframes panelIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+/* ==========================================================================
+   4. COMPONENTES COMPARTILHADOS
+   ========================================================================== */
+.badge{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:7px 13px 7px 8px; border-radius:var(--r-pill);
+  background:var(--c-accent); color:var(--c-on-accent);
+  font-size:11px; font-weight:900; letter-spacing:.14em; text-transform:uppercase;
+  box-shadow:0 4px 0 var(--c-accent-d);
+}
+.badge svg{width:18px; height:18px; color:var(--c-primary-d)}
+.badge--sm{font-size:10px; padding:5px 10px 5px 6px}
+.badge--sm svg{width:15px; height:15px}
+
+.btn{
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  width:100%; min-height:52px; padding:12px 18px; border:0;
+  border-radius:var(--r-md); cursor:pointer;
+  font-size:16px; font-weight:900; letter-spacing:.01em;
+  transition:transform .12s var(--ease), box-shadow .12s var(--ease), background var(--dur) var(--ease);
+}
+.btn svg{width:19px; height:19px}
+.btn--primary{
+  background:linear-gradient(180deg,var(--c-primary-d),var(--c-primary-d2));
+  color:#fff; box-shadow:0 6px 0 var(--c-primary-d2), 0 16px 26px -14px rgba(var(--glow),.9);
+}
+.btn--primary:active{transform:translateY(4px); box-shadow:0 2px 0 var(--c-primary-d2)}
+.btn--ghost{
+  background:var(--surface); color:var(--ink);
+  border:2px solid var(--line); box-shadow:0 4px 0 var(--line);
+}
+.btn--ghost:active{transform:translateY(3px); box-shadow:0 1px 0 var(--line)}
+.btn--accent{
+  background:var(--c-accent); color:var(--c-on-accent); box-shadow:0 5px 0 var(--c-accent-d);
+}
+.btn--accent:active{transform:translateY(3px); box-shadow:0 2px 0 var(--c-accent-d)}
+.btn--sm{min-height:44px; font-size:13px; padding:10px 14px; width:auto}
+
+.card{
+  background:var(--surface); border:2px solid var(--line);
+  border-radius:var(--r-md); padding:16px;
+  box-shadow:0 4px 0 rgba(0,0,0,.05);
+}
+.hint{margin:10px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-2); text-align:center}
+.rule{height:2px; background:var(--line); border:0; margin:18px 0; border-radius:2px}
+
+/* ==========================================================================
+   5. TELA INICIAL
+   ========================================================================== */
+.home-head{display:flex; align-items:center; justify-content:space-between; gap:10px}
+.wonder{text-align:center; margin:16px 0 6px}
+.wonder__label{
+  margin:0; font-size:11px; font-weight:900; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--ink-2);
+}
+.wonder__num{
+  position:relative; display:inline-block; margin:2px 0 0;
+  font-size:clamp(54px,17vw,84px); font-weight:900; line-height:.92; letter-spacing:-.055em;
+}
+.wonder__num-main{position:relative; color:var(--c-primary-d)}
+.wonder__num-echo{
+  position:absolute; inset:0; color:var(--c-accent); transform:translate(5px,5px); z-index:0;
+}
+.hero-art{
+  display:flex; justify-content:center; margin:6px 0 2px;
+  filter:drop-shadow(0 16px 20px rgba(0,0,0,.14));
+}
+.hero-art svg{width:min(178px,52%); height:auto; animation:float 5s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-7px) rotate(1deg)}}
+
+.theme-switch{
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:14px;
+}
+@media (min-width:400px){
+  .theme-switch{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+.theme-chip{
+  min-height:64px; border:2px solid var(--line); border-radius:var(--r-sm);
+  background:var(--surface); color:var(--ink-2); cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+  font-size:10.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase;
+  transition:all var(--dur) var(--ease);
+}
+.theme-chip svg{width:22px; height:22px}
+.theme-chip:hover{border-color:var(--c-primary)}
+.theme-chip[aria-pressed="true"]{
+  background:linear-gradient(180deg,var(--c-primary-d),var(--c-primary-d2));
+  color:#fff; border-color:var(--c-primary-d2); box-shadow:0 4px 0 var(--c-primary-d2);
+}
+
+.meta-row{display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 18px}
+.meta{
+  display:inline-flex; align-items:center; gap:7px; padding:8px 12px;
+  background:var(--surface-2); border:2px solid var(--line); border-radius:var(--r-pill);
+  font-size:12px; font-weight:800; color:var(--ink);
+}
+.meta svg{width:16px; height:16px; color:var(--c-primary-d)}
+.meta b{font-variant-numeric:tabular-nums}
+.btn-stack{display:grid; gap:10px}
+.legend{
+  display:flex; flex-wrap:wrap; gap:8px; margin-top:16px;
+  font-size:10.5px; font-weight:800; color:var(--ink-2); text-transform:uppercase; letter-spacing:.08em;
+}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.legend i{width:13px; height:13px; border-radius:4px; display:inline-block}
+
+/* ==========================================================================
+   6. TELA DE PARTIDA — GRADE (elemento focal)
+   ========================================================================== */
+.game-head{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;
+}
+.attempts{
+  display:inline-flex; align-items:center; gap:8px; padding:8px 12px;
+  background:var(--surface); border:2px solid var(--line); border-radius:var(--r-pill);
+  font-size:11.5px; font-weight:900; color:var(--ink); font-variant-numeric:tabular-nums;
+}
+.attempts svg{width:16px; height:16px; color:var(--c-primary-d)}
+.dots{display:flex; gap:4px}
+.dots i{width:8px; height:8px; border-radius:50%; background:var(--c-primary); display:block}
+.dots i.is-off{background:var(--line)}
+
+.training-note{
+  display:flex; align-items:center; gap:8px; margin-bottom:12px;
+  padding:9px 12px; border-radius:var(--r-sm);
+  background:var(--c-accent); color:var(--c-on-accent); font-size:12px; font-weight:800;
+}
+
+/* A grade fica isolada do tema: superfície neutra + moldura discreta */
+.board-wrap{
+  background:var(--surface); border:2px solid var(--line); border-radius:var(--r-md);
+  padding:12px; box-shadow:0 5px 0 rgba(0,0,0,.05);
+}
+.board{
+  --cols:5;
+  display:grid; grid-template-columns:repeat(var(--cols),minmax(0,1fr));
+  gap:6px; max-width:calc(var(--cols) * 56px + (var(--cols) - 1) * 6px); margin:0 auto;
+}
+.tile{position:relative; aspect-ratio:1/1; perspective:700px}
+.tile__inner{
+  position:absolute; inset:0; transform-style:preserve-3d;
+  transition:transform .5s var(--ease);
+}
+.tile.is-revealed .tile__inner{transform:rotateX(180deg)}
+.tile__face{
+  position:absolute; inset:0; backface-visibility:hidden;
+  display:grid; place-items:center; border-radius:var(--r-sm);
+  font-size:clamp(19px,5.6vw,29px); font-weight:900; letter-spacing:-.02em;
+}
+/* forma = 2º canal redundante (decisão 4): redondo / chanfrado / tracejado */
+.tile__face--front{
+  background:var(--surface-2); border:2px solid var(--line); color:var(--ink);
+  box-shadow:0 3px 0 var(--line);
+}
+.tile__face--back{transform:rotateX(180deg); color:#fff}
+.tile.is-correct .tile__face--back{
+  background:linear-gradient(180deg,var(--ok-1),var(--ok-2)); border-radius:var(--r-sm);
+  box-shadow:0 3px 0 var(--ok-2);
+}
+.tile.is-present .tile__face--back{
+  background:linear-gradient(180deg,var(--pr-1),var(--pr-2)); color:var(--pr-ink);
+  clip-path:polygon(0 0, calc(100% - 13px) 0, 100% 13px, 100% 100%, 0 100%);
+  box-shadow:0 3px 0 var(--pr-2);
+}
+.tile.is-absent .tile__face--back{
+  background:linear-gradient(180deg,var(--ab-1),var(--ab-2));
+  border:2px dashed var(--ab-1); color:var(--ab-ink);
+  box-shadow:0 3px 0 var(--ab-2);
+}
+.tile__mark{
+  position:absolute; top:3px; right:5px; font-size:11px; font-weight:900; line-height:1; opacity:.95;
+}
+.tile.is-current .tile__face--front{animation:caret 1.1s steps(1) infinite}
+@keyframes caret{0%,49%{border-color:var(--c-primary)} 50%,100%{border-color:var(--line)}}
+.tile__caret{
+  position:absolute; bottom:7px; left:50%; transform:translateX(-50%);
+  width:3px; height:16px; border-radius:2px; background:var(--c-primary);
+}
+
+.board-msg{
+  min-height:22px; margin:12px 0 4px; text-align:center;
+  font-size:13px; font-weight:800; color:var(--ink-2);
+}
+.board-msg.is-error{color:#b3261e}
+.shake{animation:shake .32s var(--ease)}
+@keyframes shake{0%,100%{transform:none} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}}
+
+/* Teclado */
+.keyboard{
+  position:sticky; bottom:0; z-index:20; margin-top:10px;
+  padding:9px 8px 12px; background:var(--surface-2);
+  border-top:2px solid var(--line);
+}
+.keyrow{display:flex; gap:5px; justify-content:center; margin-bottom:5px}
+.keyrow:last-child{margin-bottom:0}
+.key{
+  flex:1 1 0; min-width:0; min-height:46px; border:0; border-radius:10px;
+  background:var(--surface); color:var(--ink); cursor:pointer;
+  font-size:15px; font-weight:900; letter-spacing:.02em;
+  box-shadow:0 3px 0 var(--line);
+  transition:transform .1s var(--ease), background var(--dur) var(--ease), color var(--dur) var(--ease);
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.key svg{width:19px; height:19px}
+.key:active{transform:translateY(2px); box-shadow:0 1px 0 var(--line)}
+.key--enter{font-size:12px; letter-spacing:.1em; text-transform:uppercase}
+.key.is-correct{background:linear-gradient(180deg,var(--ok-1),var(--ok-2)); color:var(--ok-ink); box-shadow:0 3px 0 var(--ok-2)}
+.key.is-present{background:linear-gradient(180deg,var(--pr-1),var(--pr-2)); color:var(--pr-ink); box-shadow:0 3px 0 var(--pr-2)}
+.key.is-absent{background:linear-gradient(180deg,var(--ab-1),var(--ab-2)); color:var(--ab-ink); box-shadow:0 3px 0 var(--ab-2)}
+.key.is-erased{outline:2px dashed var(--c-primary-d); outline-offset:-5px}
+.key.is-used{opacity:.72}
+.kbd-toggle{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  margin-top:10px; padding:8px 12px; min-height:44px; width:100%;
+  background:transparent; border:2px dashed var(--line); border-radius:var(--r-sm);
+  color:var(--ink-2); font-size:11.5px; font-weight:800; cursor:pointer;
+}
+.kbd-toggle svg{width:16px; height:16px}
+
+/* Telas muito estreitas: o padding encolhe para que o teclado de 6 colunas
+   (modo "grande") alcance 44×44px reais de área de toque. */
+@media (max-width:359px){
+  .panel{padding:16px 12px 22px}
+  .keyboard{padding:8px 6px 12px}
+  .keyrow{gap:4px}
+  .board-wrap{padding:8px}
+  .board{gap:5px}
+}
+
+/* ==========================================================================
+   7. TELA DE RESULTADO
+   ========================================================================== */
+.result{position:relative; text-align:center; overflow:hidden}
+.confetti-layer{position:absolute; inset:0; pointer-events:none; z-index:0; overflow:hidden}
+.confetti-layer i{
+  position:absolute; top:-26px; left:var(--x); width:var(--w); height:var(--h);
+  background:var(--cc); border-radius:2px; opacity:.95;
+  animation:fall var(--d) cubic-bezier(.25,.6,.4,1) var(--delay) forwards;
+}
+@keyframes fall{
+  0%{transform:translateY(-10px) rotate(0)}
+  100%{transform:translateY(760px) rotate(var(--r)); opacity:0}
+}
+.stars{position:absolute; inset:0; pointer-events:none; z-index:0}
+.stars svg{position:absolute; width:26px; height:26px; color:var(--c-accent); animation:pop .6s var(--ease) both}
+@keyframes pop{from{transform:scale(0) rotate(-40deg); opacity:0} to{transform:scale(1) rotate(0); opacity:1}}
+
+.result-inner{position:relative; z-index:1}
+.trophy{
+  width:78px; height:78px; margin:0 auto 10px; border-radius:24px;
+  background:linear-gradient(180deg,var(--c-accent),var(--c-accent-d));
+  color:var(--c-on-accent); display:grid; place-items:center;
+  box-shadow:0 7px 0 var(--c-accent-d), 0 18px 30px -14px rgba(var(--glow),.9);
+  animation:pop .5s var(--ease) both;
+}
+.trophy svg{width:42px; height:42px}
+.result h2{
+  margin:6px 0 4px; font-size:clamp(26px,7.4vw,36px); font-weight:900;
+  letter-spacing:-.03em; text-transform:uppercase; line-height:1.05;
+}
+.result__sub{margin:0; font-size:14px; color:var(--ink-2); font-weight:600}
+.result__word{
+  display:flex; justify-content:center; flex-wrap:wrap; gap:6px; margin:16px 0 6px;
+}
+.result__word span{
+  display:grid; place-items:center; min-width:38px; height:46px; padding:0 8px;
+  background:linear-gradient(180deg,var(--c-primary-d),var(--c-primary-d2)); color:#fff;
+  border-radius:var(--r-xs); font-size:22px; font-weight:900; text-transform:uppercase;
+  box-shadow:0 4px 0 var(--c-primary-d2); animation:pop .42s var(--ease) both;
+}
+.preview-toggle{
+  display:inline-flex; gap:4px; padding:4px; margin-bottom:14px;
+  background:var(--surface-2); border:2px solid var(--line); border-radius:var(--r-pill);
+}
+.preview-toggle button{
+  min-height:36px; padding:6px 14px; border:0; border-radius:var(--r-pill);
+  background:transparent; color:var(--ink-2); font-size:11px; font-weight:900;
+  letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
+}
+.preview-toggle button[aria-pressed="true"]{background:var(--c-primary-d); color:#fff}
+.share-card{text-align:left; margin-top:18px}
+.share-card h3{
+  margin:0 0 10px; font-size:11px; font-weight:900; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ink-2);
+}
+.share-grid{display:grid; gap:4px; margin-bottom:12px}
+.share-grid .sqrow{display:flex; gap:4px}
+.sq{width:100%; max-width:34px; aspect-ratio:1/1; border-radius:5px; display:block}
+.sq--correct{background:linear-gradient(180deg,var(--ok-1),var(--ok-2))}
+.sq--present{background:linear-gradient(180deg,var(--pr-1),var(--pr-2))}
+.sq--absent{background:linear-gradient(180deg,var(--ab-1),var(--ab-2))}
+.share-text{
+  margin:0 0 12px; padding:12px; background:var(--surface-2); border:2px dashed var(--line);
+  border-radius:var(--r-sm); font-family:var(--font-mono); font-size:11.5px; line-height:1.55;
+  color:var(--ink); white-space:pre-wrap; word-break:break-word;
+}
+.result-stats{display:flex; justify-content:center; gap:10px; margin:16px 0}
+.result-stats .meta{background:var(--surface)}
+
+/* ==========================================================================
+   8. TELA DE ESTATÍSTICAS
+   ========================================================================== */
+.stats-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
+.stat{
+  background:var(--surface); border:2px solid var(--line); border-radius:var(--r-md);
+  padding:14px 12px; text-align:center; box-shadow:0 4px 0 rgba(0,0,0,.05);
+}
+.stat__icon{
+  width:38px; height:38px; margin:0 auto 8px; border-radius:12px; display:grid; place-items:center;
+  background:var(--c-accent); color:var(--c-on-accent); box-shadow:0 3px 0 var(--c-accent-d);
+}
+.stat__icon svg{width:20px; height:20px}
+.stat__value{
+  display:block; font-size:28px; font-weight:900; letter-spacing:-.04em; line-height:1;
+  font-variant-numeric:tabular-nums; color:var(--ink);
+}
+.stat__label{
+  display:block; margin-top:5px; font-size:10px; font-weight:900; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-2);
+}
+.stat--wide{grid-column:1/-1; display:flex; align-items:center; gap:14px; text-align:left}
+.stat--wide .stat__value{font-size:20px; text-transform:uppercase}
+.stat--wide .stat__label{margin-top:4px}
+/* A palavra final é longa: encolhe a fonte para caber na meia coluna */
+.stats-grid .stat__value{font-size:clamp(19px,6vw,27px); word-break:break-word}
+.chart{display:flex; align-items:flex-end; gap:8px; height:120px; margin-top:8px}
+.chart__col{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end}
+.chart__bar{
+  width:100%; height:var(--h); min-height:4px; border-radius:6px 6px 3px 3px;
+  background:linear-gradient(180deg,var(--c-primary),var(--c-primary-d));
+  box-shadow:0 3px 0 var(--c-primary-d2);
+}
+.chart__day{font-size:10px; font-weight:900; color:var(--ink-2); text-transform:uppercase}
+
+/* ==========================================================================
+   9. MOVIMENTO REDUZIDO
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important; animation-iteration-count:1!important;
+    transition-duration:.001ms!important; scroll-behavior:auto!important;
+  }
+  .hero-art svg{animation:none}
+  .tile.is-revealed .tile__inner{transform:none}
+  .tile.is-revealed .tile__face--front{display:none}
+  .tile.is-revealed .tile__face--back{transform:none}
+  .confetti-layer,.stars{display:none}
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main" data-i18n="skipLink">Pular para o jogo</a>
+
+<div class="stage">
+  <!-- ============ ARTBOARD (direção de arte) — só em telas grandes ============ -->
+  <aside class="artboard" aria-label="Direção de arte">
+    <p class="ab-eyebrow" data-i18n="abEyebrow">Conceito C</p>
+    <h1 class="ab-title" data-i18n="abTitle">Identidade Visual Temática</h1>
+    <p class="ab-lede" data-i18n="abLede">
+      Cada tema do dia repinta o jogo inteiro: fundo, badge, botões, teclado neutro,
+      ilustração e tipografia de acento. A grade de tentativas, essa sim, permanece
+      neutra — é o único elemento que o jogador precisa ler.
+    </p>
+
+    <div class="ab-art" id="abArt"></div>
+
+    <div class="ab-block">
+      <p class="ab-label" data-i18n="abPalette">Paleta do tema</p>
+      <div class="swatches" id="abSwatches"></div>
+    </div>
+
+    <div class="ab-block">
+      <p class="ab-label" data-i18n="abType">Tipografia</p>
+      <div class="type-spec">
+        <b class="spec-display">#1024</b>
+        <b class="spec-label" data-i18n="specLabel">Palavra do dia nº 1024</b>
+        <b class="spec-body" data-i18n="specBody">Sistema, peso 900, caixa alta e tracking fechado nos números.</b>
+      </div>
+    </div>
+
+    <div class="ab-block">
+      <p class="ab-label" data-i18n="abNotes">Regras do conceito</p>
+      <ul class="ab-notes">
+        <li data-i18n="abNote1">Verde, amarelo e cinza são fixos: a cor semântica nunca compete com a decoração.</li>
+        <li data-i18n="abNote2">Cada tile carrega forma + símbolo + aria-label, nunca só cor.</li>
+        <li data-i18n="abNote3">O tema pinta o cenário; a grade continua sendo o ponto focal.</li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- ============ APP ============ -->
+  <div class="phone">
+    <header class="phone__top">
+      <div class="brand">
+        <span class="brand__mark" id="brandMark"></span>
+        <span>
+          <span class="brand__name" data-i18n="appName">cacaPalavras</span>
+          <span class="brand__tag" data-i18n="tagline">A palavra do dia, todo dia.</span>
+        </span>
+      </div>
+      <div class="lang" role="group" aria-label="Idioma">
+        <button type="button" data-lang-btn="pt" aria-pressed="true">PT</button>
+        <button type="button" data-lang-btn="en" aria-pressed="false">EN</button>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Telas do jogo">
+      <button class="tab" role="tab" id="tab-home" aria-controls="panel-home" aria-selected="true" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></svg>
+        <span data-i18n="tabHome">Início</span>
+      </button>
+      <button class="tab" role="tab" id="tab-game" aria-controls="panel-game" aria-selected="false" data-tab="game" tabindex="-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>
+        <span data-i18n="tabGame">Partida</span>
+      </button>
+      <button class="tab" role="tab" id="tab-result" aria-controls="panel-result" aria-selected="false" data-tab="result" tabindex="-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3M9 20h6M10 17h4v3h-4z"/></svg>
+        <span data-i18n="tabResult">Resultado</span>
+      </button>
+      <button class="tab" role="tab" id="tab-stats" aria-controls="panel-stats" aria-selected="false" data-tab="stats" tabindex="-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-9"/></svg>
+        <span data-i18n="tabStats">Stats</span>
+      </button>
+    </nav>
+
+    <div class="phone__body">
+      <main id="main">
+
+        <!-- ================= TELA 1 — INICIAL ================= -->
+        <section class="panel" id="panel-home" role="tabpanel" aria-labelledby="tab-home" tabindex="-1">
+          <div class="home-head">
+            <span class="badge" id="homeBadge"></span>
+            <span class="badge badge--sm" id="homeLen"></span>
+          </div>
+
+          <div class="wonder">
+            <p class="wonder__label" data-i18n="dayNumberLabel">Palavra do dia nº</p>
+            <p class="wonder__num">
+              <span class="wonder__num-echo" id="wonderEcho" aria-hidden="true">#1024</span>
+              <span class="wonder__num-main" id="wonderMain">#1024</span>
+            </p>
+          </div>
+
+          <div class="hero-art" id="homeArt"></div>
+
+          <div class="theme-switch" role="group" aria-label="Escolher tema" id="themeSwitch"></div>
+          <p class="hint" data-i18n="themeSwitchHint">Toque em um tema para repintar o jogo inteiro.</p>
+
+          <div class="meta-row">
+            <span class="meta" id="metaLetters"></span>
+            <span class="meta" id="metaAttempts"></span>
+            <span class="meta" id="metaStreak"></span>
+          </div>
+
+          <div class="btn-stack">
+            <button class="btn btn--primary" id="playBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l12 8-12 8z"/></svg>
+              <span data-i18n="play">Jogar</span>
+            </button>
+            <button class="btn btn--ghost" id="trainBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
+              <span data-i18n="training">Treinar</span>
+            </button>
+          </div>
+          <p class="hint" data-i18n="trainingHint">Treinar não gasta o jogo do dia nem quebra sua sequência.</p>
+
+          <div class="legend" aria-hidden="true">
+            <span><i style="background:linear-gradient(180deg,var(--ok-1),var(--ok-2))"></i><span data-i18n="legendCorrect">Na posição</span></span>
+            <span><i style="background:linear-gradient(180deg,var(--pr-1),var(--pr-2))"></i><span data-i18n="legendPresent">Fora da posição</span></span>
+            <span><i style="background:linear-gradient(180deg,var(--ab-1),var(--ab-2))"></i><span data-i18n="legendAbsent">Não existe</span></span>
+          </div>
+        </section>
+
+        <!-- ================= TELA 2 — PARTIDA ================= -->
+        <section class="panel" id="panel-game" role="tabpanel" aria-labelledby="tab-game" tabindex="-1" hidden>
+          <div class="game-head">
+            <span class="badge badge--sm" id="gameBadge"></span>
+            <span class="attempts" id="attemptsLeft"></span>
+          </div>
+
+          <div id="trainingNote" class="training-note" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+            <span data-i18n="training">Treinar</span>
+          </div>
+
+          <div class="board-wrap">
+            <div class="board" id="board" role="group" aria-label="Grade de tentativas"></div>
+          </div>
+
+          <p class="board-msg" id="boardMsg" role="status" aria-live="polite"></p>
+          <p class="sr-only" id="live" aria-live="polite" aria-atomic="true"></p>
+          <p class="sr-only" id="alert" role="alert" aria-atomic="true"></p>
+
+          <div class="keyboard" id="keyboard" role="group" aria-label="Teclado virtual"></div>
+          <button class="kbd-toggle" id="kbdToggle" type="button" aria-label="Alternar layout do teclado">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>
+            <span id="kbdToggleLabel">Teclado compacto</span>
+          </button>
+        </section>
+
+        <!-- ================= TELA 3 — RESULTADO ================= -->
+        <section class="panel" id="panel-result" role="tabpanel" aria-labelledby="tab-result" tabindex="-1" hidden>
+          <div class="result">
+            <div class="confetti-layer" id="confetti" aria-hidden="true"></div>
+            <div class="stars" id="stars" aria-hidden="true"></div>
+
+            <div class="result-inner">
+              <div class="preview-toggle" role="group" aria-label="Prévia do resultado">
+                <button type="button" data-preview="win" aria-pressed="true" data-i18n="previewWin">Vitória</button>
+                <button type="button" data-preview="lose" aria-pressed="false" data-i18n="previewLose">Derrota</button>
+              </div>
+
+              <div class="trophy" id="resultTrophy"></div>
+              <h2 id="resultTitle">Você acertou!</h2>
+              <p class="result__sub" id="resultSub"></p>
+
+              <div class="result__word" id="resultWord"></div>
+
+              <div class="result-stats">
+                <span class="meta" id="resultAttempts"></span>
+                <span class="meta" id="resultStreak"></span>
+              </div>
+
+              <div class="card share-card">
+                <h3 data-i18n="share">Compartilhar</h3>
+                <div class="share-grid" id="shareGrid" role="img" aria-label="Padrão das tentativas"></div>
+                <pre class="share-text" id="shareText"></pre>
+                <button class="btn btn--accent" id="copyBtn" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="3"/><path d="M5 15V6a3 3 0 0 1 3-3h8"/></svg>
+                  <span data-i18n="copy">Copiar</span>
+                </button>
+                <p class="sr-only" id="copyLive" aria-live="polite"></p>
+              </div>
+
+              <div class="btn-stack" style="margin-top:14px">
+                <button class="btn btn--primary" id="resultPlayBtn" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l12 8-12 8z"/></svg>
+                  <span data-i18n="playAgain">Jogar de novo</span>
+                </button>
+                <button class="btn btn--ghost" id="resultStatsBtn" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-9"/></svg>
+                  <span data-i18n="statistics">Estatísticas</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= TELA 4 — ESTATÍSTICAS ================= -->
+        <section class="panel" id="panel-stats" role="tabpanel" aria-labelledby="tab-stats" tabindex="-1" hidden>
+          <h2 style="margin:0 0 14px;font-size:22px;font-weight:900;letter-spacing:-.03em;text-transform:uppercase" data-i18n="statistics">Estatísticas</h2>
+
+          <div class="stats-grid" id="statsGrid"></div>
+
+          <div class="card" style="margin-top:14px">
+            <h3 style="margin:0 0 4px;font-size:11px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)" data-i18n="distribution">Distribuição de tentativas</h3>
+            <div class="chart" id="chart"></div>
+          </div>
+
+          <p class="hint" data-i18n="trainingHint">Treinar não gasta o jogo do dia nem quebra sua sequência.</p>
+        </section>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   1. DADOS DOS TEMAS (ids, comprimentos e paleta alinhados a src/data/themes.ts)
+   ========================================================================== */
+const THEME_IDS = ['animals', 'food', 'science', 'sports'];
+
+const THEMES = {
+  animals: {
+    id: 'animals', length: 5,
+    label: { pt: 'Animais', en: 'Animals' },
+    palette: [
+      ['Primária', '#2f9e6b'], ['Escura', '#1e6f4b'], ['Acento', '#ffd166'],
+      ['Fundo 1', '#e9f7ef'], ['Fundo 2', '#fff8e3']
+    ],
+    /* pares [pt, en] — mesmo comprimento em ambos os idiomas.
+       "garça" e "águia" exercitam a regra de cedilha; "café", "fóssil", "níquel",
+       "córtex", "órbita", "sólidos" e "rúgbi" exercitam a de acento. */
+    words: [['águia','eagle'],['cobra','cobra'],['tigre','tiger'],['panda','panda'],['corvo','raven'],['garça','heron'],['coala','koala'],['lhama','llama'],['polvo','squid'],['hiena','hyena'],['tenca','tench'],['ganso','goose'],['zebra','zebra']]
+  },
+  food: {
+    id: 'food', length: 4,
+    label: { pt: 'Comida', en: 'Food' },
+    palette: [
+      ['Primária', '#e4572e'], ['Escura', '#a53a18'], ['Acento', '#ffb703'],
+      ['Fundo 1', '#fdefe7'], ['Fundo 2', '#ffe9d9']
+    ],
+    words: [['bolo','cake'],['sopa','soup'],['kiwi','kiwi'],['pêra','pear'],['atum','tuna'],['taro','taro'],['erva','herb'],['taco','taco'],['café','cafe']]
+  },
+  science: {
+    id: 'science', length: 6,
+    label: { pt: 'Ciência', en: 'Science' },
+    palette: [
+      ['Primária', '#3d5afe'], ['Escura', '#2b3fc4'], ['Acento', '#8e44ad'],
+      ['Fundo 1', '#eceffd'], ['Fundo 2', '#e7f7f5']
+    ],
+    words: [['fóssil','fossil'],['níquel','nickel'],['córtex','cortex'],['biomas','biomes'],['plasma','plasma'],['enzima','enzyme'],['teoria','theory'],['sólido','solids'],['quarks','quarks'],['órbita','orbits'],['prisma','prisms']]
+  },
+  sports: {
+    id: 'sports', length: 5,
+    label: { pt: 'Esportes', en: 'Sports' },
+    palette: [
+      ['Primária', '#1b6ca8'], ['Escura', '#0f4a73'], ['Acento', '#00b4d8'],
+      ['Fundo 1', '#e6f2fa'], ['Fundo 2', '#e9fbff']
+    ],
+    words: [['rúgbi','rugby'],['skate','skate'],['padel','padel'],['esqui','skier'],['campo','field'],['pista','track'],['jogos','games'],['chute','kicks'],['rival','rival'],['duelo','duels'],['arena','arena'],['finta','feint']]
+  }
+};
+
+/* ==========================================================================
+   2. ILUSTRAÇÕES SVG ORIGINAIS (desenhadas com paths — sem emoji, sem CDN)
+   ========================================================================== */
+const ART = {
+  animals: `<svg viewBox="0 0 128 128" aria-hidden="true" focusable="false">
+    <path d="M26 46 L16 12 L52 31 Z" fill="var(--c-primary-d)"/>
+    <path d="M102 46 L112 12 L76 31 Z" fill="var(--c-primary-d)"/>
+    <path d="M64 18c-25 0-43 17-43 42 0 19 13 33 25 39 6 3 12 4 18 4s12-1 18-4c12-6 25-20 25-39 0-25-18-42-43-42z" fill="var(--c-primary)"/>
+    <path d="M64 55c-13 0-24 10-24 21 0 10 11 18 24 18s24-8 24-18c0-11-11-21-24-21z" fill="var(--surface)"/>
+    <circle cx="47" cy="55" r="6.5" fill="var(--ink)"/><circle cx="81" cy="55" r="6.5" fill="var(--ink)"/>
+    <circle cx="49.5" cy="52.5" r="2.2" fill="#fff"/><circle cx="83.5" cy="52.5" r="2.2" fill="#fff"/>
+    <path d="M64 66l9 8-9 8-9-8z" fill="var(--ink)"/>
+    <path d="M64 82v9M52 88l-8 4M76 88l8 4" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" fill="none"/>
+  </svg>`,
+  food: `<svg viewBox="0 0 128 128" aria-hidden="true" focusable="false">
+    <path d="M64 10 L110 92 A52 52 0 0 1 18 92 Z" fill="var(--c-accent)"/>
+    <path d="M64 10 L110 92 A52 52 0 0 1 18 92 Z" fill="none" stroke="var(--c-primary-d)" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="64" cy="52" r="11" fill="var(--c-primary)"/>
+    <circle cx="47" cy="74" r="9.5" fill="var(--c-primary)"/>
+    <circle cx="81" cy="74" r="9.5" fill="var(--c-primary)"/>
+    <circle cx="61" cy="86" r="5" fill="var(--c-primary-d)" opacity=".55"/>
+    <path d="M18 92 A52 52 0 0 0 110 92" fill="none" stroke="var(--c-primary)" stroke-width="15" stroke-linecap="round"/>
+  </svg>`,
+  science: `<svg viewBox="0 0 128 128" aria-hidden="true" focusable="false">
+    <path d="M50 12h28v3H50z" fill="var(--c-primary-d)"/>
+    <path d="M52 15h24v15l28 62c6 13-3 24-17 24H41c-14 0-23-11-17-24l28-62z" fill="var(--surface)" stroke="var(--c-primary-d)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M30 80h68l6 12c6 13-3 24-17 24H41c-14 0-23-11-17-24z" fill="var(--c-primary)"/>
+    <path d="M30 80c10 6 18-6 28 0s18-6 28 0 12 0 12 0z" fill="var(--c-primary)"/>
+    <circle cx="56" cy="96" r="5.5" fill="var(--c-accent)"/>
+    <circle cx="74" cy="106" r="4" fill="var(--c-accent)"/>
+    <circle cx="66" cy="88" r="3" fill="var(--c-accent)" opacity=".8"/>
+  </svg>`,
+  sports: `<svg viewBox="0 0 128 128" aria-hidden="true" focusable="false">
+    <circle cx="64" cy="64" r="52" fill="var(--surface)" stroke="var(--c-primary-d)" stroke-width="5"/>
+    <path d="M64 42 L84.9 57.2 L76.9 81.8 L51.1 81.8 L43.1 57.2 Z" fill="var(--c-primary)"/>
+    <path d="M64 42 L64 14M84.9 57.2 L108 50M76.9 81.8 L90 104M51.1 81.8 L38 104M43.1 57.2 L20 50"
+      stroke="var(--c-primary-d)" stroke-width="4" stroke-linecap="round" fill="none"/>
+  </svg>`
+};
+
+/* Ícones compactos dos temas (badge, chips, marca).
+   Formas simplificadas de propósito: precisam ser legíveis a 22px. */
+const ICON = {
+  animals: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="6.6" cy="9.4" rx="2.1" ry="2.7" fill="currentColor"/><ellipse cx="12" cy="7.3" rx="2.1" ry="2.9" fill="currentColor"/><ellipse cx="17.4" cy="9.4" rx="2.1" ry="2.7" fill="currentColor"/><path d="M12 11.1c3.1 0 5.4 2.5 5.4 5.1 0 2.1-1.6 3.4-5.4 3.4s-5.4-1.3-5.4-3.4c0-2.6 2.3-5.1 5.4-5.1z" fill="currentColor"/></svg>`,
+  food: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.6 21 18a9 9 0 0 1-18 0z" fill="currentColor"/><circle cx="12" cy="11.2" r="2.2" fill="var(--c-accent)"/><circle cx="8.2" cy="15.4" r="1.8" fill="var(--c-accent)"/><circle cx="15.8" cy="15.4" r="1.8" fill="var(--c-accent)"/></svg>`,
+  science: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9.4 2.6h5.2v1.8H9.4zM10.6 4.4v5.2L6 17.4a2.1 2.1 0 0 0 1.9 3.2h8.2a2.1 2.1 0 0 0 1.9-3.2l-4.6-7.8V4.4z" fill="currentColor"/><path d="M7.6 15.2h8.8l1 2.2a2.1 2.1 0 0 1-1.9 3.2H8.5a2.1 2.1 0 0 1-1.9-3.2z" fill="var(--c-accent)"/></svg>`,
+  sports: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9.2" fill="currentColor"/><path d="M12 5.6 16.8 9.3 14.9 15H9.1L7.2 9.3z" fill="var(--c-accent)"/></svg>`
+};
+
+/* Ícones de interface (desenhados, não emoji genéricos) */
+const UI = {
+  flame: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12.8 2c.7 3.6-1.4 5.2-3 6.9C7.7 10.9 6 12.4 6 15a6 6 0 0 0 12 0c0-2.5-1.2-4.2-2.4-5.6-.3.9-.8 1.6-1.5 2.1.6-3.1-.3-6.7-1.3-9.5z" fill="currentColor"/></svg>`,
+  target: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg>`,
+  tries: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20h16"/><path d="M7 20v-5M12 20V9M17 20v-8"/></svg>`,
+  trophy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3M9 20h6M10 17h4v3h-4z"/></svg>`,
+  skull: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7v3l2 2v3h10v-3l2-2v-3a7 7 0 0 0-7-7z"/><circle cx="9.5" cy="11" r="1.4"/><circle cx="14.5" cy="11" r="1.4"/><path d="M10 16h4"/></svg>`,
+  star: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4 6.2 20.5l1.1-6.5L2.6 9.4l6.5-.9z" fill="currentColor"/></svg>`,
+  backspace: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 5H9l-6 7 6 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="M17 9l-5 6M12 9l5 6"/></svg>`,
+  enter: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></svg>`,
+  hash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 3 7 21M17 3l-2 18M4 9h16M3 15h16"/></svg>`,
+  medal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="15" r="5.5"/><path d="M8.5 10.5 6 3h12l-2.5 7.5"/></svg>`,
+  grid: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 10h16M4 15h16M10 4v16"/></svg>`
+};
+
+/* ==========================================================================
+   3. TEXTOS (mesmo dicionário de src/data/strings.ts + extras do protótipo)
+   ========================================================================== */
+const STRINGS = {
+  pt: {
+    appName:'cacaPalavras', tagline:'A palavra do dia, todo dia.',
+    tabHome:'Início', tabGame:'Partida', tabResult:'Resultado', tabStats:'Stats',
+    skipLink:'Pular para o jogo',
+    play:'Jogar', playAgain:'Jogar de novo', training:'Treinar',
+    trainingHint:'Treinar não gasta o jogo do dia nem quebra sua sequência.',
+    dayNumberLabel:'Palavra do dia nº',
+    themeSwitchHint:'Toque em um tema para repintar o jogo inteiro.',
+    todayTheme:'Tema de hoje',
+    letters:'{n} letras', attempts:'{n} tentativas',
+    attemptsLeft:'Tentativas: {n}',
+    won:'Você acertou!', lost:'Fim de jogo',
+    wonSubtitle:'A palavra era {word}.', lostSubtitle:'A palavra era {word}.',
+    usedAttempts:'Você usou {used} de {total} tentativas.',
+    share:'Compartilhar', copy:'Copiar', copied:'Copiado!', copyFail:'Não foi possível copiar. Selecione o texto manualmente.',
+    shareText:'Acabei de jogar hoje e usei {used} tentativas!',
+    streakLine:'Sequência: {n}',
+    statistics:'Estatísticas', currentStreak:'Sequência atual', bestStreak:'Melhor sequência',
+    gamesPlayed:'Partidas', wins:'Vitórias', winRate:'% de acerto', lastWord:'Última palavra',
+    distribution:'Distribuição de tentativas',
+    tileLabelCorrect:'Posição {pos}: {letter}, letra correta na posição',
+    tileLabelPresent:'Posição {pos}: {letter}, letra presente mas fora da posição',
+    tileLabelAbsent:'Posição {pos}: {letter}, essa letra não existe na palavra',
+    tileLabelEmpty:'Posição {pos}: vazia',
+    tileLabelPending:'Posição {pos}: {letter}, ainda não revelada',
+    rowAnnouncement:'Linha {row}. {details}',
+    letterCorrect:'{letter} na posição', letterPresent:'{letter} presente fora da posição', letterAbsent:'{letter} não existe',
+    wrongLength:'A palavra precisa ter {n} letras.',
+    emptyGuess:'Digite uma palavra antes de enviar.',
+    repeatedGuess:'Você já tentou essa palavra.',
+    ariaLetter:'Letra {letter}', ariaLetterState:'Letra {letter}, {state}',
+    stateCorrect:'na posição', statePresent:'fora da posição', stateAbsent:'não existe na palavra',
+    ariaEnter:'Enviar tentativa', ariaBackspace:'Apagar a última letra',
+    ariaBoard:'Grade de tentativas',
+    legendCorrect:'Na posição', legendPresent:'Fora da posição', legendAbsent:'Não existe',
+    previewWin:'Vitória', previewLose:'Derrota', previewTag:'Prévia de demonstração',
+    kbdToggle:'Alternar layout do teclado', kbdToggleOn:'Alternar layout do teclado',
+    kbdLabelCompact:'Teclado compacto', kbdLabelLarge:'Teclado grande',
+    abEyebrow:'Conceito C', abTitle:'Identidade Visual Temática',
+    abLede:'Cada tema do dia repinta o jogo inteiro: fundo, badge, botões, teclado neutro, ilustração e tipografia de acento. A grade de tentativas, essa sim, permanece neutra — é o único elemento que o jogador precisa ler.',
+    abPalette:'Paleta do tema', abType:'Tipografia', abNotes:'Regras do conceito',
+    specLabel:'Palavra do dia nº 1024',
+    specBody:'Sistema, peso 900, caixa alta e tracking fechado nos números.',
+    abNote1:'Verde, amarelo e cinza são fixos: a cor semântica nunca compete com a decoração.',
+    abNote2:'Cada tile carrega forma + símbolo + aria-label, nunca só cor.',
+    abNote3:'O tema pinta o cenário; a grade continua sendo o ponto focal.'
+  },
+  en: {
+    appName:'cacaPalavras', tagline:'The word of the day, every day.',
+    tabHome:'Home', tabGame:'Game', tabResult:'Result', tabStats:'Stats',
+    skipLink:'Skip to game',
+    play:'Play', playAgain:'Play again', training:'Practice',
+    trainingHint:'Practice does not use up your daily word or break your streak.',
+    dayNumberLabel:'Word of the day #',
+    themeSwitchHint:'Tap a theme to repaint the whole game.',
+    todayTheme:"Today's theme",
+    letters:'{n} letters', attempts:'{n} tries',
+    attemptsLeft:'Tries: {n}',
+    won:'You got it!', lost:'Game over',
+    wonSubtitle:'The word was {word}.', lostSubtitle:'The word was {word}.',
+    usedAttempts:'You used {used} of {total} tries.',
+    share:'Share', copy:'Copy', copied:'Copied!', copyFail:'Could not copy. Select the text manually.',
+    shareText:'I just played today and used {used} tries!',
+    streakLine:'Streak: {n}',
+    statistics:'Statistics', currentStreak:'Current streak', bestStreak:'Best streak',
+    gamesPlayed:'Games', wins:'Wins', winRate:'Win rate', lastWord:'Last word',
+    distribution:'Guess distribution',
+    tileLabelCorrect:'Position {pos}: {letter}, correct letter in position',
+    tileLabelPresent:'Position {pos}: {letter}, letter present but in another position',
+    tileLabelAbsent:'Position {pos}: {letter}, this letter is not in the word',
+    tileLabelEmpty:'Position {pos}: empty',
+    tileLabelPending:'Position {pos}: {letter}, not revealed yet',
+    rowAnnouncement:'Row {row}. {details}',
+    letterCorrect:'{letter} in position', letterPresent:'{letter} present in another position', letterAbsent:'{letter} not in word',
+    wrongLength:'The word must have {n} letters.',
+    emptyGuess:'Type a word before submitting.',
+    repeatedGuess:'You already tried that word.',
+    ariaLetter:'Letter {letter}', ariaLetterState:'Letter {letter}, {state}',
+    stateCorrect:'in position', statePresent:'in another position', stateAbsent:'not in the word',
+    ariaEnter:'Submit guess', ariaBackspace:'Delete the last letter',
+    ariaBoard:'Guess grid',
+    legendCorrect:'Right spot', legendPresent:'Wrong spot', legendAbsent:'Not in word',
+    previewWin:'Win', previewLose:'Loss', previewTag:'Demo preview',
+    kbdToggle:'Alternate keyboard layout', kbdToggleOn:'Alternate keyboard layout',
+    kbdLabelCompact:'Compact keyboard', kbdLabelLarge:'Large keyboard',
+    abEyebrow:'Concept C', abTitle:'Thematic Visual Identity',
+    abLede:'Each daily theme repaints the whole game: background, badge, buttons, neutral keyboard, illustration and accent typography. The guess grid, on the other hand, stays neutral — it is the only element the player truly has to read.',
+    abPalette:'Theme palette', abType:'Typography', abNotes:'Concept rules',
+    specLabel:'Word of the day #1024',
+    specBody:'System stack, weight 900, uppercase and tight tracking on numerals.',
+    abNote1:'Green, yellow and gray are fixed: semantic color never competes with decoration.',
+    abNote2:'Every tile carries shape + symbol + aria-label, never color alone.',
+    abNote3:'The theme paints the scenery; the grid remains the focal point.'
+  }
+};
+
+/* ==========================================================================
+   4. UTILITÁRIOS
+   ========================================================================== */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const fmt = (tpl, vals) => String(tpl).replace(/\{(\w+)\}/g, (_, k) => String(vals[k] ?? ''));
+const norm = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* Hash FNV-1a + PRNG mulberry32 — mesma recipe de src/lib/daily.ts, para que o
+   protótipo e o app real sorteiem a MESMA palavra do dia. */
+function hashString(value){
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i++){
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+function mulberry32(seed){
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function toDateKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function dayNumber(key){
+  const [y,m,d] = key.split('-').map(Number);
+  const utc = Date.UTC(y, m-1, d);
+  return Math.floor((utc - Date.UTC(2024,0,1)) / 86400000) + 1;
+}
+
+/* ==========================================================================
+   5. ESTADO
+   ========================================================================== */
+const today = new Date();
+const dateKey = toDateKey(today);
+const dayNo = dayNumber(dateKey);
+
+const state = {
+  lang: 'pt',
+  themeId: 'animals',
+  tab: 'home',
+  kbd: 'qwerty',
+  kbdAuto: true,          // enquanto true, o modo acompanha a largura da tela
+  training: false,
+  preview: 'win',          // 'win' | 'lose' na tela de resultado
+  dayNo,
+  /* jogo */
+  answer: '',             // resposta com acento
+  normalizedAnswer: '',
+  length: 5,
+  maxAttempts: 6,
+  attempts: [],           // [{guess:[letras], statuses:['correct'|'present'|'absent']}]
+  current: '',
+  keyState: {},           // letra -> status
+  erased: {},             // letra -> true (digitada e apagada)
+  outcome: 'playing',
+  stats: {
+    currentStreak: 5, bestStreak: 12, games: 63, wins: 49,
+    lastWord: 'córtex', distribution: [1, 4, 9, 14, 12, 8, 6]
+  }
+};
+
+/* ==========================================================================
+   6. SELEÇÃO DO DIA (determinística, igual ao app real)
+   ========================================================================== */
+function resolveDaily(themeId, lang){
+  const theme = THEMES[themeId];
+  const rng = mulberry32(hashString(`${dateKey}|${lang}|${themeId}|word`));
+  const pool = theme.words;
+  const pair = pool[Math.floor(rng() * pool.length)];
+  return pair[lang === 'pt' ? 0 : 1];
+}
+function themeOfDay(){
+  const rng = mulberry32(hashString(`${dateKey}|${state.lang}|theme`));
+  return THEME_IDS[Math.floor(rng() * THEME_IDS.length)];
+}
+
+/* ==========================================================================
+   7. FEEDBACK (mesma ordem de passagens de src/lib/feedback.ts)
+   ========================================================================== */
+function computeFeedback(answer, guess){
+  const a = norm(answer), g = norm(guess);
+  const res = new Array(g.length).fill('absent');
+  const remaining = new Map();
+  for (let i = 0; i < a.length; i++){
+    if (g[i] === a[i]) res[i] = 'correct';
+    else remaining.set(a[i], (remaining.get(a[i]) ?? 0) + 1);
+  }
+  for (let i = 0; i < g.length; i++){
+    if (res[i] === 'correct') continue;
+    const ch = g[i], left = remaining.get(ch) ?? 0;
+    if (left > 0){ res[i] = 'present'; remaining.set(ch, left - 1); }
+  }
+  return res;
+}
+const RANK = { absent: 0, present: 1, correct: 2 };
+
+/* ==========================================================================
+   8. RENDERIZAÇÃO
+   ========================================================================== */
+const S = () => STRINGS[state.lang];
+
+function applyI18n(){
+  const s = S();
+  $$('[data-i18n]').forEach(el => {
+    const v = s[el.dataset.i18n];
+    if (v != null) el.textContent = v;
+  });
+  document.documentElement.lang = state.lang === 'pt' ? 'pt-BR' : 'en';
+  document.documentElement.dataset.lang = state.lang;
+  $$('[data-lang-btn]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.langBtn === state.lang)));
+}
+
+/* ---- 8.1 Tema: repinta a interface inteira ---- */
+function applyTheme(themeId){
+  state.themeId = themeId;
+  document.documentElement.dataset.theme = themeId;
+
+  const theme = THEMES[themeId];
+  state.length = theme.length;
+  state.maxAttempts = theme.length <= 4 ? 6 : 7;
+
+  $('#brandMark').innerHTML = ICON[themeId];
+  $('#homeArt').innerHTML = ART[themeId];
+  $('#abArt').innerHTML = ART[themeId];
+
+  renderThemeChips();
+  renderPalette();
+  resetGame();          // reconstroi a grade e o teclado com o novo comprimento
+  renderHome();
+  renderResult();
+  renderStats();
+}
+
+function renderThemeChips(){
+  const wrap = $('#themeSwitch');
+  wrap.innerHTML = '';
+  THEME_IDS.forEach(id => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'theme-chip';
+    b.setAttribute('aria-pressed', String(id === state.themeId));
+    b.innerHTML = ICON[id] + `<span>${THEMES[id].label[state.lang]}</span>`;
+    b.addEventListener('click', () => { applyTheme(id); announce(`${THEMES[id].label[state.lang]} — tema aplicado`); });
+    wrap.appendChild(b);
+  });
+}
+
+function renderPalette(){
+  const wrap = $('#abSwatches');
+  wrap.innerHTML = '';
+  THEMES[state.themeId].palette.forEach(([name, hex]) => {
+    const el = document.createElement('span');
+    el.className = 'swatch';
+    el.innerHTML = `<i style="--sw:${hex}"></i>${hex}`;
+    el.title = name;
+    wrap.appendChild(el);
+  });
+}
+
+/* ---- 8.2 Home ---- */
+function renderHome(){
+  const s = S(), theme = THEMES[state.themeId];
+  $('#homeBadge').innerHTML = ICON[state.themeId] + `<span>${theme.label[state.lang]}</span>`;
+  $('#homeLen').innerHTML = `<span>${fmt(s.letters, { n: state.length })}</span>`;
+  $('#wonderMain').textContent = `#${state.dayNo}`;
+  $('#wonderEcho').textContent = `#${state.dayNo}`;
+
+  $('#metaLetters').innerHTML = UI.hash + `<span>${fmt(s.letters, { n: state.length })}</span>`;
+  $('#metaAttempts').innerHTML = UI.tries + `<span>${fmt(s.attempts, { n: state.maxAttempts })}</span>`;
+  $('#metaStreak').innerHTML = UI.flame + `<span>${fmt(s.streakLine, { n: state.stats.currentStreak })}</span>`;
+}
+
+/* ---- 8.3 Grade ---- */
+function buildBoard(){
+  const board = $('#board');
+  board.innerHTML = '';
+  board.style.setProperty('--cols', state.length);
+  board.setAttribute('aria-label', S().ariaBoard);
+  const frag = document.createDocumentFragment();
+  for (let r = 0; r < state.maxAttempts; r++){
+    for (let c = 0; c < state.length; c++){
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.setAttribute('role', 'img');
+      tile.dataset.r = r; tile.dataset.c = c;
+      tile.innerHTML =
+        '<div class="tile__inner">' +
+          '<div class="tile__face tile__face--front"><span class="tile__letter"></span></div>' +
+          '<div class="tile__face tile__face--back"><span class="tile__letter"></span><span class="tile__mark"></span></div>' +
+        '</div>';
+      frag.appendChild(tile);
+    }
+  }
+  board.appendChild(frag);
+}
+
+function updateBoard(){
+  const s = S();
+  const tiles = $$('#board .tile');
+  tiles.forEach(tile => {
+    const r = +tile.dataset.r, c = +tile.dataset.c;
+    const attempt = state.attempts[r];
+    const front = tile.querySelector('.tile__face--front');
+    const back  = tile.querySelector('.tile__face--back');
+    const fLetter = front.querySelector('.tile__letter');
+    const bLetter = back.querySelector('.tile__letter');
+    const mark = back.querySelector('.tile__mark');
+
+    tile.classList.remove('is-correct','is-present','is-absent','is-revealed','is-current');
+    front.querySelector('.tile__caret')?.remove();
+
+    if (attempt){
+      const status = attempt.statuses[c];
+      // Letra correta na posição: mostra a forma COM acento da resposta (ensina o acento).
+      const letter = status === 'correct' ? state.answer[c].toUpperCase() : attempt.guess[c].toUpperCase();
+      fLetter.textContent = letter;
+      bLetter.textContent = letter;
+      mark.textContent = status === 'correct' ? '✓' : status === 'present' ? '↑' : '✗';
+      tile.classList.add(status === 'correct' ? 'is-correct' : status === 'present' ? 'is-present' : 'is-absent', 'is-revealed');
+      tile.setAttribute('aria-label', fmt(
+        status === 'correct' ? s.tileLabelCorrect : status === 'present' ? s.tileLabelPresent : s.tileLabelAbsent,
+        { pos: c + 1, letter }));
+      tile.style.setProperty('--delay', `${c * 70}ms`);
+      const inner = tile.querySelector('.tile__inner');
+      inner.style.transitionDelay = `${c * 70}ms`;
+    } else if (r === state.attempts.length){
+      const letter = state.current[c] ? state.current[c].toUpperCase() : '';
+      fLetter.textContent = letter;
+      bLetter.textContent = letter;
+      mark.textContent = '';
+      /* Cursor só na ÚLTIMA célula preenchida da linha atual (não em todas). */
+      if (letter && c === state.current.length - 1){
+        tile.classList.add('is-current');
+        const caret = document.createElement('span');
+        caret.className = 'tile__caret';
+        front.appendChild(caret);
+      }
+      tile.setAttribute('aria-label', letter ? fmt(s.tileLabelPending, { pos: c + 1, letter }) : fmt(s.tileLabelEmpty, { pos: c + 1 }));
+    } else {
+      fLetter.textContent = ''; bLetter.textContent = ''; mark.textContent = '';
+      tile.setAttribute('aria-label', fmt(s.tileLabelEmpty, { pos: c + 1 }));
+    }
+  });
+
+  /* Selo do tema na própria tela de partida (identidade + contexto do dia). */
+  $('#gameBadge').innerHTML = ICON[state.themeId] + `<span>${THEMES[state.themeId].label[state.lang]}</span>`;
+  const left = Math.max(0, state.maxAttempts - state.attempts.length);
+  $('#attemptsLeft').innerHTML = UI.target + `<span>${fmt(s.attemptsLeft, { n: left })}</span>`;
+  $('#trainingNote').hidden = !state.training;
+}
+
+/* ---- 8.4 Teclado ---- */
+const QWERTY = 'qwertyuiopasdfghjklzxcvbnm';
+function layoutRows(mode){
+  if (mode === 'qwerty'){
+    return [
+      QWERTY.slice(0,10).split('').map(k => ({ k })),
+      QWERTY.slice(10,19).split('').map(k => ({ k })),
+      QWERTY.slice(19,26).split('').map(k => ({ k })).concat([{ k:'backspace' }]),
+      [{ k:'enter', grow:10 }]
+    ];
+  }
+  /* Modo "teclado grande": 6 colunas — garante alvos de 44×44px reais em 320px. */
+  const letters = QWERTY.split('');
+  const rows = [];
+  for (let i = 0; i < 24; i += 6) rows.push(letters.slice(i, i+6).map(k => ({ k })));
+  rows.push([{ k:letters[24] }, { k:letters[25] }, { k:'backspace' }, { k:'enter', grow:3 }]);
+  return rows;
+}
+function buildKeyboard(){
+  const kb = $('#keyboard');
+  kb.innerHTML = '';
+  kb.dataset.layout = state.kbd;
+  layoutRows(state.kbd).forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'keyrow';
+    row.forEach(def => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'key' + (def.k === 'enter' ? ' key--enter' : '') + (def.k === 'backspace' ? ' key--back' : '');
+      b.dataset.key = def.k;
+      b.style.flexGrow = String(def.grow || 1);
+      if (def.k === 'enter'){
+        b.innerHTML = UI.enter + `<span class="key__label">${state.lang === 'pt' ? 'Enviar' : 'Enter'}</span>`;
+        b.setAttribute('aria-label', S().ariaEnter);
+      } else if (def.k === 'backspace'){
+        b.innerHTML = UI.backspace;
+        b.setAttribute('aria-label', S().ariaBackspace);
+      } else {
+        b.textContent = def.k.toUpperCase();
+        b.setAttribute('aria-label', fmt(S().ariaLetter, { letter: def.k.toUpperCase() }));
+      }
+      rowEl.appendChild(b);
+    });
+    kb.appendChild(rowEl);
+  });
+  updateKeyboard();
+}
+function updateKeyboard(){
+  const s = S();
+  $$('#keyboard .key').forEach(k => {
+    const key = k.dataset.key;
+    k.classList.remove('is-correct','is-present','is-absent','is-erased','is-used');
+    if (key.length !== 1) return;
+    const st = state.keyState[key];
+    if (st === 'correct'){
+      k.classList.add('is-correct');
+      k.setAttribute('aria-label', fmt(s.ariaLetterState, { letter: key.toUpperCase(), state: s.stateCorrect }));
+    } else if (st === 'present'){
+      k.classList.add('is-present');
+      k.setAttribute('aria-label', fmt(s.ariaLetterState, { letter: key.toUpperCase(), state: s.statePresent }));
+    } else if (st === 'absent'){
+      k.classList.add('is-absent');
+      k.setAttribute('aria-label', fmt(s.ariaLetterState, { letter: key.toUpperCase(), state: s.stateAbsent }));
+    } else {
+      k.setAttribute('aria-label', fmt(s.ariaLetter, { letter: key.toUpperCase() }));
+    }
+    if (state.erased[key]) k.classList.add('is-erased');
+  });
+}
+
+/* ---- 8.5 Resultado ---- */
+function demoAttempts(kind){
+  /* Gera um histórico CONSISTENTE com a resposta do dia (mesmo avaliador do jogo),
+     para que a prévia da tela de resultado nunca contradiga o padrão exibido. */
+  const answer = state.normalizedAnswer;
+  const n = answer.length;
+  const filler = 'jqzkwv'.split('').find(ch => !answer.includes(ch)) || 'x';
+  const rows = [];
+  if (kind === 'win'){
+    rows.push(answer.split('').map(() => filler).join(''));
+    const swapped = answer.split('');
+    if (n >= 2){ [swapped[0], swapped[1]] = [swapped[1], swapped[0]]; }
+    rows.push(swapped.join(''));
+    const partial = answer.split('');
+    partial[n-1] = filler;
+    rows.push(partial.join(''));
+    rows.push(answer);
+  } else {
+    for (let i = 0; i < state.maxAttempts; i++){
+      const row = answer.split('');
+      const keep = Math.max(0, Math.floor(n * (i / state.maxAttempts)));
+      for (let j = keep; j < n; j++) row[j] = filler;
+      rows.push(row.join(''));
+    }
+  }
+  return rows.map(g => ({ guess: g.split(''), statuses: computeFeedback(state.answer, g) }));
+}
+
+function currentResult(){
+  if (state.outcome !== 'playing'){
+    return { win: state.outcome === 'won', attempts: state.attempts };
+  }
+  const attempts = demoAttempts(state.preview);
+  return { win: state.preview === 'win', attempts };
+}
+
+function renderResult(){
+  const s = S();
+  const res = currentResult();
+  const isDemo = state.outcome === 'playing';
+
+  $('#resultTrophy').innerHTML = res.win ? UI.trophy : UI.skull;
+  $('#resultTitle').textContent = res.win ? s.won : s.lost;
+  $('#resultSub').textContent = fmt(res.win ? s.wonSubtitle : s.lostSubtitle, { word: state.answer.toUpperCase() });
+
+  const word = $('#resultWord');
+  word.innerHTML = '';
+  state.answer.split('').forEach((ch, i) => {
+    const span = document.createElement('span');
+    span.textContent = ch.toUpperCase();
+    span.style.animationDelay = `${i * 70}ms`;
+    word.appendChild(span);
+  });
+
+  const used = res.attempts.length;
+  $('#resultAttempts').innerHTML = UI.tries + `<span>${fmt(s.usedAttempts, { used, total: state.maxAttempts })}</span>`;
+  $('#resultStreak').innerHTML = UI.flame + `<span>${fmt(s.streakLine, { n: state.stats.currentStreak })}</span>`;
+
+  /* O subtítulo ganha a etiqueta "prévia" quando o resultado é uma demonstração
+     (não houve partida real), para não mentir sobre o estado do jogo. */
+  const base = fmt(res.win ? s.wonSubtitle : s.lostSubtitle, { word: state.answer.toUpperCase() });
+  $('#resultSub').textContent = isDemo ? `${base} · ${s.previewTag}` : base;
+
+  /* Grade de compartilhamento: NUNCA revela a palavra. */
+  const grid = $('#shareGrid');
+  grid.innerHTML = '';
+  res.attempts.forEach(a => {
+    const row = document.createElement('div');
+    row.className = 'sqrow';
+    a.statuses.forEach(st => {
+      const sq = document.createElement('span');
+      sq.className = `sq sq--${st}`;
+      row.appendChild(sq);
+    });
+    grid.appendChild(row);
+  });
+  grid.setAttribute('aria-label', `${s.share}: ${res.attempts.length} ${state.lang === 'pt' ? 'tentativas' : 'tries'}`);
+
+  const emoji = { correct:'🟩', present:'🟨', absent:'⬛' };
+  const emojiGrid = res.attempts.map(a => a.statuses.map(st => emoji[st]).join('')).join('\n');
+  const text = [
+    `${s.appName} #${state.dayNo} ${emojiGrid}`,
+    fmt(s.shareText, { used }),
+    `${fmt(s.streakLine, { n: state.stats.currentStreak })} · ${used}/${state.maxAttempts}`
+  ].join('\n');
+  $('#shareText').textContent = text;
+  state.shareText = text;
+
+  $$('[data-preview]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.preview === state.preview)));
+  /* O seletor "Vitória/Derrota" é uma ferramenta de demonstração do mockup:
+     some quando existe um resultado real da partida. */
+  $('.preview-toggle').hidden = !isDemo;
+
+  if (res.win) spawnCelebration(); else clearCelebration();
+}
+
+function spawnCelebration(){
+  const layer = $('#confetti');
+  const stars = $('#stars');
+  layer.innerHTML = ''; stars.innerHTML = '';
+  if (reducedMotion() || state.tab !== 'result') return;  // particles só na tela de resultado
+  const colors = ['var(--c-accent)', 'var(--c-primary)', 'var(--c-primary-d)', 'var(--c-on-accent)'];
+  for (let i = 0; i < 36; i++){
+    const p = document.createElement('i');
+    p.style.setProperty('--x', `${(i * 2.8 + Math.random() * 4).toFixed(1)}%`);
+    p.style.setProperty('--w', `${5 + Math.random() * 7}px`);
+    p.style.setProperty('--h', `${8 + Math.random() * 10}px`);
+    p.style.setProperty('--r', `${Math.round(Math.random() * 720)}deg`);
+    p.style.setProperty('--d', `${(1.9 + Math.random() * 1.1).toFixed(2)}s`);
+    p.style.setProperty('--delay', `${(Math.random() * 0.5).toFixed(2)}s`);
+    p.style.setProperty('--cc', colors[i % colors.length]);
+    layer.appendChild(p);
+  }
+  [[12,18],[80,24],[24,62],[68,70]].forEach(([x,y], i) => {
+    const st = document.createElement('span');
+    st.innerHTML = UI.star;
+    st.style.left = `${x}%`; st.style.top = `${y}%`;
+    st.style.animationDelay = `${i * 120}ms`;
+    stars.appendChild(st);
+  });
+}
+function clearCelebration(){ $('#confetti').innerHTML = ''; $('#stars').innerHTML = ''; }
+
+/* ---- 8.6 Estatísticas ---- */
+function renderStats(){
+  const s = S();
+  const st = state.stats;
+  const cards = [
+    { icon: UI.flame, value: st.currentStreak, label: s.currentStreak },
+    { icon: UI.trophy, value: st.bestStreak, label: s.bestStreak },
+    { icon: UI.tries, value: st.games, label: s.gamesPlayed },
+    { icon: UI.medal, value: st.wins, label: s.wins },
+    { icon: UI.target, value: `${Math.round((st.wins / Math.max(1, st.games)) * 100)}%`, label: s.winRate },
+    { icon: UI.hash, value: (st.lastWord || '—').toUpperCase(), label: s.lastWord }
+  ];
+  const grid = $('#statsGrid');
+  grid.innerHTML = '';
+  cards.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'stat' + (c.wide ? ' stat--wide' : '');
+    el.innerHTML = `<span class="stat__icon">${c.icon}</span><span class="stat__value">${c.value}</span><span class="stat__label">${c.label}</span>`;
+    grid.appendChild(el);
+  });
+
+  const chart = $('#chart');
+  chart.innerHTML = '';
+  const max = Math.max(...st.distribution, 1);
+  const days = state.lang === 'pt' ? ['S','T','Q','Q','S','S','D'] : ['S','M','T','W','T','F','S'];
+  st.distribution.forEach((v, i) => {
+    const col = document.createElement('div');
+    col.className = 'chart__col';
+    col.innerHTML = `<span class="chart__bar" style="--h:${Math.max(6, (v / max) * 100)}%"></span><span class="chart__day">${days[i] ?? ''}</span>`;
+    chart.appendChild(col);
+  });
+}
+
+/* ==========================================================================
+   9. LÓGICA DE JOGO
+   ========================================================================== */
+function resetGame(){
+  state.attempts = [];
+  state.current = '';
+  state.keyState = {};
+  state.erased = {};
+  state.outcome = 'playing';
+  state.answer = resolveDaily(state.themeId, state.lang);
+  state.normalizedAnswer = norm(state.answer);
+  buildBoard();
+  buildKeyboard();
+  updateBoard();
+  updateKeyboard();
+  $('#boardMsg').textContent = '';
+}
+
+function typeLetter(ch){
+  if (state.outcome !== 'playing') return;
+  if (state.current.length >= state.length) return;
+  if (state.erased[ch]) delete state.erased[ch];
+  state.current += ch;
+  updateBoard();
+  updateKeyboard();
+}
+function backspace(){
+  if (state.outcome !== 'playing' || !state.current.length) return;
+  const ch = state.current[state.current.length - 1];
+  state.current = state.current.slice(0, -1);
+  state.erased[ch] = true;          // marca a tecla como "usada e apagada"
+  updateBoard();
+  updateKeyboard();
+}
+function submit(){
+  const s = S();
+  if (state.outcome !== 'playing') return;
+  if (!state.current.length){
+    $('#boardMsg').textContent = s.emptyGuess;
+    $('#boardMsg').classList.add('is-error');
+    $('#alert').textContent = s.emptyGuess;
+    return;
+  }
+  if (state.current.length !== state.length){
+    const msg = fmt(s.wrongLength, { n: state.length });
+    $('#boardMsg').textContent = msg;
+    $('#boardMsg').classList.add('is-error');
+    $('#alert').textContent = msg;
+    $('#board').classList.add('shake');
+    setTimeout(() => $('#board').classList.remove('shake'), 340);
+    return;
+  }
+  const guess = state.current;
+  if (state.attempts.some(a => a.guess.join('') === guess)){
+    const msg = s.repeatedGuess;
+    $('#boardMsg').textContent = msg;
+    $('#boardMsg').classList.add('is-error');
+    $('#alert').textContent = msg;
+    return;
+  }
+
+  const statuses = computeFeedback(state.answer, guess);
+  state.attempts.push({ guess: guess.split(''), statuses });
+  state.current = '';
+
+  /* Estado do teclado: green > yellow > gray, nunca rebaixa. */
+  guess.split('').forEach((ch, i) => {
+    const st = statuses[i];
+    const cur = state.keyState[ch];
+    if (!cur || RANK[st] > RANK[cur]) state.keyState[ch] = st;
+    delete state.erased[ch];
+  });
+
+  updateBoard();
+  updateKeyboard();
+
+  /* Anúncio do resultado da tentativa (região aria-live). */
+  const details = statuses.map((st, i) => fmt(
+    st === 'correct' ? s.letterCorrect : st === 'present' ? s.letterPresent : s.letterAbsent,
+    { letter: guess[i].toUpperCase() })).join(', ');
+  $('#live').textContent = fmt(s.rowAnnouncement, { row: state.attempts.length, details });
+  const correct = statuses.filter(x => x === 'correct').length;
+  $('#boardMsg').classList.remove('is-error');
+  $('#boardMsg').textContent = correct === state.length
+    ? s.won
+    : `${correct}/${state.length} ${state.lang === 'pt' ? 'no lugar certo' : 'in the right spot'}`;
+
+  if (statuses.every(st => st === 'correct')){
+    state.outcome = 'won';
+    /* Modo treino não toca em sequência, vitórias nem distribuição. */
+    if (!state.training){
+      state.stats.currentStreak += 1;
+      state.stats.bestStreak = Math.max(state.stats.bestStreak, state.stats.currentStreak);
+      state.stats.wins += 1;
+      state.stats.games += 1;
+      state.stats.lastWord = state.answer;
+      state.stats.distribution[Math.min(state.stats.distribution.length - 1, state.attempts.length - 1)] += 1;
+    }
+    setTimeout(() => { switchTab('result'); }, 620);
+  } else if (state.attempts.length >= state.maxAttempts){
+    state.outcome = 'lost';
+    if (!state.training){
+      state.stats.games += 1;
+      state.stats.distribution[Math.min(state.stats.distribution.length - 1, state.attempts.length - 1)] += 1;
+    }
+    setTimeout(() => { switchTab('result'); }, 620);
+  }
+}
+
+function announce(text){ $('#live').textContent = text; }
+
+/* ==========================================================================
+   10. NAVEGAÇÃO ENTRE ABAS
+   ========================================================================== */
+function switchTab(tab){
+  state.tab = tab;
+  $$('.tab').forEach(b => {
+    const on = b.dataset.tab === tab;
+    b.setAttribute('aria-selected', String(on));
+    b.tabIndex = on ? 0 : -1;
+  });
+  ['home','game','result','stats'].forEach(id => {
+    const panel = $(`#panel-${id}`);
+    panel.hidden = id !== tab;
+  });
+  if (tab === 'result') renderResult();
+  if (tab === 'stats') renderStats();
+  if (tab === 'home') renderHome();
+  if (tab === 'game') syncKeyboardLayout();   // o teclado só tem largura quando visível
+}
+
+/* ==========================================================================
+   11. EVENTOS
+   ========================================================================== */
+$$('.tab').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  btn.addEventListener('keydown', e => {
+    const tabs = $$('.tab');
+    const i = tabs.indexOf(btn);
+    let next = null;
+    if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
+    if (e.key === 'ArrowLeft')  next = tabs[(i - 1 + tabs.length) % tabs.length];
+    if (e.key === 'Home') next = tabs[0];
+    if (e.key === 'End')  next = tabs[tabs.length - 1];
+    if (next){ e.preventDefault(); next.focus(); switchTab(next.dataset.tab); }
+  });
+});
+
+$('#playBtn').addEventListener('click', () => { state.training = false; resetGame(); switchTab('game'); });
+$('#trainBtn').addEventListener('click', () => { state.training = true; resetGame(); switchTab('game'); });
+$('#resultPlayBtn').addEventListener('click', () => { resetGame(); switchTab('game'); });
+$('#resultStatsBtn').addEventListener('click', () => switchTab('stats'));
+
+$$('[data-lang-btn]').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.langBtn === state.lang) return;
+  state.lang = b.dataset.langBtn;
+  applyI18n();
+  /* Trocar de idioma troca a palavra do dia: a partida em andamento reinicia
+     para que o histórico de tentativas continue coerente com a nova resposta. */
+  resetGame();
+  renderHome();
+  renderResult();
+  renderStats();
+  announce(state.lang === 'pt' ? 'Idioma alterado para português' : 'Language changed to English');
+}));
+
+$$('[data-preview]').forEach(b => b.addEventListener('click', () => {
+  state.preview = b.dataset.preview;
+  renderResult();
+}));
+
+/* Teclado virtual */
+$('#keyboard').addEventListener('click', e => {
+  const btn = e.target.closest('.key');
+  if (!btn) return;
+  const key = btn.dataset.key;
+  if (key === 'enter') submit();
+  else if (key === 'backspace') backspace();
+  else typeLetter(key);
+});
+
+/* Alternador de layout de teclado */
+function syncKbdButton(){
+  const large = state.kbd === 'large';
+  $('#kbdToggleLabel').textContent = large ? S().kbdLabelLarge : S().kbdLabelCompact;
+  $('#kbdToggle').setAttribute('aria-label', `${S().kbdToggle} — ${large ? S().kbdLabelLarge : S().kbdLabelCompact}`);
+}
+$('#kbdToggle').addEventListener('click', () => {
+  state.kbdAuto = false;
+  state.kbd = state.kbd === 'qwerty' ? 'large' : 'qwerty';
+  buildKeyboard();
+  updateKeyboard();
+  syncKbdButton();
+});
+
+/* Teclado físico */
+document.addEventListener('keydown', e => {
+  if (state.tab !== 'game') return;
+  const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+  if (tag === 'input' || tag === 'textarea') return;
+  /* Enter/espaço já_activation num botão focado não deve virar tentativa duplicada.
+     (e.target pode ser `document`, que não tem closest — daí a checagem.) */
+  if ((e.key === 'Enter' || e.key === ' ') && e.target instanceof Element && e.target.closest('button')) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+  if (/^[a-zA-Z]$/.test(e.key)){
+    e.preventDefault();
+    const ch = e.key.toLowerCase();
+    if (state.erased[ch]) delete state.erased[ch];
+    typeLetter(ch);
+  } else if (e.key === 'Backspace'){
+    e.preventDefault();
+    backspace();
+  } else if (e.key === 'Enter'){
+    e.preventDefault();
+    submit();
+  }
+});
+
+/* Copiar resultado */
+$('#copyBtn').addEventListener('click', async () => {
+  const s = S();
+  const text = state.shareText || '';
+  let ok = false;
+  try {
+    if (navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    }
+  } catch (err){ ok = false; }
+  if (!ok){
+    /* Fallback para file:// (sem contexto seguro) */
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      ok = document.execCommand('copy');
+      ta.remove();
+    } catch (err){ ok = false; }
+  }
+  const label = $('#copyBtn span');
+  const original = s.copy;
+  label.textContent = ok ? s.copied : s.copyFail;
+  $('#copyLive').textContent = ok ? s.copied : s.copyFail;
+  setTimeout(() => { label.textContent = original; }, 1800);
+});
+
+/* Layout de teclado: medimos a largura REAL do teclado (e não a da viewport),
+   porque no desktop o app vive dentro de uma moldura de 420px.
+   Abaixo de 360px de largura útil o layout QWERTY de 3 linhas (10 teclas) não
+   comporta 44px por tecla — aí o app troca sozinho para o modo "grande"
+   de 6 colunas, onde cada tecla tem 44×44px de verdade. */
+const KEYBOARD_NARROW = 360;
+function syncKeyboardLayout(){
+  if (!state.kbdAuto) return;
+  const kb = $('#keyboard');
+  const width = kb ? kb.clientWidth : window.innerWidth;
+  const shouldBeLarge = width > 0 && width < KEYBOARD_NARROW;
+  const next = shouldBeLarge ? 'large' : 'qwerty';
+  if (next !== state.kbd){
+    state.kbd = next;
+    buildKeyboard();
+    updateKeyboard();
+    syncKbdButton();
+  }
+}
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(syncKeyboardLayout, 120);
+});
+if (window.ResizeObserver){
+  new ResizeObserver(() => syncKeyboardLayout()).observe(document.documentElement);
+}
+
+/* ==========================================================================
+   12. BOOT
+   ========================================================================== */
+applyI18n();
+state.themeId = themeOfDay();
+applyTheme(state.themeId, false);
+syncKbdButton();
+syncKeyboardLayout();
+switchTab('home');
+</script>
+</body>
+</html>

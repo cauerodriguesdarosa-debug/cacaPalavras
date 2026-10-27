@@ -1,0 +1,21 @@
+{
+  "name": "cacaPalavras — a palavra do dia",
+  "short_name": "cacaPalavras",
+  "description": "Jogo casual diário de adivinhação de palavras por tema. Uma palavra por dia, com sequência, estatísticas e compartilhamento.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6f8",
+  "theme_color": "#16202a",
+  "lang": "pt-BR",
+  "categories": ["games", "education"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
